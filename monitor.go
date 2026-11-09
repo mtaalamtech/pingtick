@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -388,36 +387,19 @@ func checkSNMP(t *Target) {
 
 	oids := []string{t.SnmpOID}
 	result, err := client.Get(oids)
-	if err != nil || len(result.Variables) == 0 {
+	if err != nil || len(result.Variables) == 0 || result.Error != gosnmp.NoError || snmpValueMissing(result.Variables[0]) {
 		updateTargetStatus(t.ID, "offline", 0, "", 0)
 		return
 	}
 
-	val := result.Variables[0].Value
-
-	// Try to get numeric value
-	var numVal uint64
-	switch v := val.(type) {
-	case uint:
-		numVal = uint64(v)
-	case uint32:
-		numVal = uint64(v)
-	case uint64:
-		numVal = v
-	case int:
-		numVal = uint64(v)
-	case int32:
-		numVal = uint64(v)
-	case int64:
-		numVal = uint64(v)
-	case string:
-		p, _ := strconv.ParseUint(v, 10, 64)
-		numVal = p
-	default:
-		// Not parsed
-	}
+	numVal, numeric := snmpNumber(result.Variables[0])
 
 	if t.Type == "bandwidth" {
+		if !numeric { // a rate cannot be calculated from text
+			updateTargetStatus(t.ID, "offline", 0, "", 0)
+			return
+		}
+
 		now := time.Now()
 		if !t.prevSnmpTime.IsZero() && numVal >= t.prevSnmpValue {
 			diffBytes := numVal - t.prevSnmpValue
@@ -436,12 +418,10 @@ func checkSNMP(t *Target) {
 			stored.prevSnmpTime = now
 		}
 		mutex.Unlock()
+	} else if numeric {
+		updateTargetStatus(t.ID, "online", int64(numVal), "", 0)
 	} else {
-		if numVal == 0 {
-			updateTargetStatus(t.ID, "online", 1, "", 0)
-		} else {
-			updateTargetStatus(t.ID, "online", int64(numVal), "", 0)
-		}
+		updateTargetStatus(t.ID, "online", 1, "", 0) // the device answered with text
 	}
 }
 

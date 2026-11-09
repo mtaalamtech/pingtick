@@ -8,8 +8,14 @@ import (
 	"github.com/gosnmp/gosnmp"
 )
 
+type fakeSNMPReply struct {
+	kind  gosnmp.Asn1BER
+	value any
+	err   gosnmp.SNMPError
+}
+
 // startFakeSNMPAgent answers only requests that use its community string.
-func startFakeSNMPAgent(t *testing.T, ip string, port int, community string, value uint) int {
+func startFakeSNMPAgent(t *testing.T, ip string, port int, community string, reply fakeSNMPReply) int {
 	t.Helper()
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.ParseIP(ip), Port: port})
 	if err != nil {
@@ -30,7 +36,8 @@ func startFakeSNMPAgent(t *testing.T, ip string, port int, community string, val
 				continue
 			}
 			request.PDUType = gosnmp.GetResponse
-			request.Variables = []gosnmp.SnmpPDU{{Name: request.Variables[0].Name, Type: gosnmp.Gauge32, Value: value}}
+			request.Error = reply.err
+			request.Variables = []gosnmp.SnmpPDU{{Name: request.Variables[0].Name, Type: reply.kind, Value: reply.value}}
 			if response, err := request.MarshalMsg(); err == nil {
 				conn.WriteToUDP(response, sender)
 			}
@@ -39,13 +46,34 @@ func startFakeSNMPAgent(t *testing.T, ip string, port int, community string, val
 	return conn.LocalAddr().(*net.UDPAddr).Port
 }
 
-func TestSNMPChecksRunningTogetherKeepTheirOwnResults(t *testing.T) {
-	port := startFakeSNMPAgent(t, "127.0.0.2", 0, "community-a", 101)
-	startFakeSNMPAgent(t, "127.0.0.3", port, "community-b", 202)
-
+func useSNMPPort(t *testing.T, port int) {
+	t.Helper()
 	original := snmpPort
 	snmpPort = uint16(port)
 	t.Cleanup(func() { snmpPort = original })
+}
+
+func addSNMPTarget(t *testing.T, targetType, host, community string) *Target {
+	t.Helper()
+	target := &Target{Name: host, Host: host, Type: targetType, Interval: 60, SnmpCommunity: community, SnmpOID: "1.3.6.1.2.1.1.3.0"}
+	if err := AddTarget(target); err != nil {
+		t.Fatal(err)
+	}
+	id := target.ID
+	t.Cleanup(func() { DeleteTarget(id) })
+	return target
+}
+
+func snmpTargetResult(id string) (string, int64) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	return targets[id].Status, targets[id].Latency
+}
+
+func TestSNMPChecksRunningTogetherKeepTheirOwnResults(t *testing.T) {
+	port := startFakeSNMPAgent(t, "127.0.0.2", 0, "community-a", fakeSNMPReply{kind: gosnmp.Gauge32, value: uint(101)})
+	startFakeSNMPAgent(t, "127.0.0.3", port, "community-b", fakeSNMPReply{kind: gosnmp.Gauge32, value: uint(202)})
+	useSNMPPort(t, port)
 
 	devices := []struct {
 		host, community string
@@ -57,22 +85,13 @@ func TestSNMPChecksRunningTogetherKeepTheirOwnResults(t *testing.T) {
 
 	var wait sync.WaitGroup
 	for _, device := range devices {
-		target := &Target{Name: device.host, Host: device.host, Type: "snmp", Interval: 60, SnmpCommunity: device.community, SnmpOID: "1.3.6.1.2.1.1.3.0"}
-		if err := AddTarget(target); err != nil {
-			t.Fatal(err)
-		}
-		id := target.ID
-		t.Cleanup(func() { DeleteTarget(id) })
-
+		target := addSNMPTarget(t, "snmp", device.host, device.community)
 		wait.Add(1)
 		go func(want int64) {
 			defer wait.Done()
 			for i := 0; i < 200; i++ {
 				checkSNMP(target)
-				mutex.RLock()
-				status, got := targets[id].Status, targets[id].Latency
-				mutex.RUnlock()
-				if status != "online" || got != want {
+				if status, got := snmpTargetResult(target.ID); status != "online" || got != want {
 					t.Errorf("%s check %d: status %s, value %d, want online %d", target.Host, i, status, got, want)
 					return
 				}
@@ -80,6 +99,52 @@ func TestSNMPChecksRunningTogetherKeepTheirOwnResults(t *testing.T) {
 		}(device.want)
 	}
 	wait.Wait()
+}
+
+func TestSNMPCheckInterpretsReplies(t *testing.T) {
+	tests := []struct {
+		name       string
+		targetType string
+		reply      fakeSNMPReply
+		status     string
+		value      int64
+	}{
+		{"oid does not exist", "snmp", fakeSNMPReply{kind: gosnmp.NoSuchObject}, "offline", 0},
+		{"instance does not exist", "snmp", fakeSNMPReply{kind: gosnmp.NoSuchInstance}, "offline", 0},
+		{"device reports an error", "snmp", fakeSNMPReply{kind: gosnmp.Null, err: gosnmp.GenErr}, "offline", 0},
+		{"number sent as text", "snmp", fakeSNMPReply{kind: gosnmp.OctetString, value: "42"}, "online", 42},
+		{"decimal sent as text", "snmp", fakeSNMPReply{kind: gosnmp.OctetString, value: " 23.7 "}, "online", 23},
+		{"plain text", "snmp", fakeSNMPReply{kind: gosnmp.OctetString, value: "Linux router"}, "online", 1},
+		{"text that looks like nan", "snmp", fakeSNMPReply{kind: gosnmp.OctetString, value: "nan"}, "online", 1},
+		{"real zero", "snmp", fakeSNMPReply{kind: gosnmp.Gauge32, value: uint(0)}, "online", 0},
+		{"integer", "snmp", fakeSNMPReply{kind: gosnmp.Integer, value: 55}, "online", 55},
+		{"bandwidth from text", "bandwidth", fakeSNMPReply{kind: gosnmp.OctetString, value: "not a counter"}, "offline", 0},
+		{"first bandwidth reading", "bandwidth", fakeSNMPReply{kind: gosnmp.Counter32, value: uint(1000)}, "online", 0},
+		{"missing bandwidth oid", "bandwidth", fakeSNMPReply{kind: gosnmp.NoSuchObject}, "offline", 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			port := startFakeSNMPAgent(t, "127.0.0.4", 0, "public", tt.reply)
+			useSNMPPort(t, port)
+			target := addSNMPTarget(t, tt.targetType, "127.0.0.4", "public")
+
+			checkSNMP(target)
+			if status, value := snmpTargetResult(target.ID); status != tt.status || value != tt.value {
+				t.Fatalf("status %s, value %d, want %s %d", status, value, tt.status, tt.value)
+			}
+		})
+	}
+}
+
+func TestSNMPNumberKeepsNegativeValues(t *testing.T) {
+	number, ok := snmpNumber(gosnmp.SnmpPDU{Value: -5})
+	if !ok || int64(number) != -5 {
+		t.Fatalf("number = %d, %v", int64(number), ok)
+	}
+	number, ok = snmpNumber(gosnmp.SnmpPDU{Value: []byte("-12")})
+	if !ok || int64(number) != -12 {
+		t.Fatalf("text number = %d, %v", int64(number), ok)
+	}
 }
 
 func TestSNMPClientDefaultsToPublicCommunity(t *testing.T) {
