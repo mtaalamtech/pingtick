@@ -6,7 +6,7 @@ Welcome to **PingTick**! This comprehensive guide walks you through using your b
 
 ## 1. Navigating the Interface
 
-When you run `pingtick.exe`, the background monitoring engine boots up instantly and your default web browser is launched to `http://localhost:<dynamic_port>/`. Your UI uses a sleek, dark-themed glassmorphism layout split into three primary tabs:
+When you run `pingtick.exe`, the background monitoring engine boots up instantly and the native monitor window opens with a live table of your targets. Closing it keeps monitoring in the system tray. Click **Web Dashboard** to open the browser interface at `http://localhost:<dynamic_port>/`. Your UI uses a sleek, dark-themed glassmorphism layout split into three primary tabs:
 
 - **Dashboard**: The heart of your operations. Here, you get a real-time (2-second polling) overview of all monitored endpoints, their current SLA health, average latencies, and total packet metrics.
 - **Manage Targets**: Your control center for defining which IP addresses, routing paths, or websites to track across the global internet or your local LAN.

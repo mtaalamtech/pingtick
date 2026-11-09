@@ -50,7 +50,8 @@ func onReady() {
 	systray.SetTitle("PingTick")
 	systray.SetTooltip("PingTick Monitor Daemon Active")
 
-	mOpen := systray.AddMenuItem("Open Dashboard", "Open the PingTick interface")
+	mMonitor := systray.AddMenuItem("Open Monitor", "Show the PingTick monitor window")
+	mOpen := systray.AddMenuItem("Open Web Dashboard", "Open settings, reports and the IP scanner in a browser")
 	mQuit := systray.AddMenuItem("Shutdown Engine", "Stop PingTick daemon")
 
 	// Initialize Database
@@ -102,6 +103,8 @@ func onReady() {
 	go func() {
 		for {
 			select {
+			case <-mMonitor.ClickedCh:
+				showMonitorWindow()
 			case <-mOpen.ClickedCh:
 				openBrowser(activeURL)
 			case <-mQuit.ClickedCh:
@@ -110,8 +113,7 @@ func onReady() {
 		}
 	}()
 
-	// Open browser automatically on launch
-	openBrowser(activeURL)
+	go runMonitorWindow()
 
 	go func() {
 		log.Fatal(http.Serve(listener, localOnly(http.DefaultServeMux)))

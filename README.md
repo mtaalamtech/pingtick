@@ -63,7 +63,7 @@ To compile PingTick into a single portable binary:
 
 ```bash
 # Compile
-go build -o pingtick.exe
+go build -ldflags "-s -w -H=windowsgui" -o pingtick.exe
 
 # Run
 ./pingtick.exe
@@ -73,7 +73,7 @@ When started, PingTick will:
 1. Initialize/connect to `pingtick.db`.
 2. Spin up the background monitoring tasks.
 3. Automatically bind to the first available listener port on your localhost.
-4. Auto-launch your default browser targeting the Dashboard.
+4. Open the native monitor window. Closing it keeps monitoring in the system tray, and **Web Dashboard** opens settings, reports and the IP scanner in a browser.
 
 ---
 
