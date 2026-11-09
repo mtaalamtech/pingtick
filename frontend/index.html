@@ -36,6 +36,7 @@
             </div>
             <nav>
                 <a href="#" class="nav-link active" data-target="dashboard-tab">Dashboard</a>
+                <a href="#" class="nav-link" data-target="scanner-tab">IP Scanner</a>
                 <a href="#" class="nav-link" data-target="history-tab">Analytical Reports</a>
                 <a href="#" class="nav-link" data-target="alerts-tab">System Settings</a>
             </nav>
@@ -133,6 +134,46 @@
                             <tbody id="dashboard-targets-list">
                                 <!-- Populated dynamically -->
                             </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IP Scanner Tab -->
+            <div id="scanner-tab" class="tab-content">
+                <header>
+                    <div>
+                        <h1>IP Scanner</h1>
+                        <p class="subtitle">Find live devices on your network and add them to monitoring</p>
+                    </div>
+                </header>
+
+                <div class="main-panel glass">
+                    <div style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 1; min-width: 260px; margin-bottom: 0;">
+                            <label for="scan_range">Address range</label>
+                            <input type="text" id="scan_range" list="scan_local_ranges" autocomplete="off"
+                                spellcheck="false" placeholder="192.168.1.0/24 or 192.168.1.1-254">
+                            <datalist id="scan_local_ranges"></datalist>
+                        </div>
+                        <button class="btn primary" id="btn-scan-start" onclick="startScan()">Start Scan</button>
+                        <button class="btn danger" id="btn-scan-stop" style="display: none;"
+                            onclick="stopScan()">Stop</button>
+                    </div>
+                    <p id="scan-status" class="text-secondary" role="status" style="margin-bottom: 1rem;"></p>
+                    <div class="table-responsive">
+                        <table class="targets-table">
+                            <thead>
+                                <tr>
+                                    <th>IP Address</th>
+                                    <th>Hostname</th>
+                                    <th>MAC Address</th>
+                                    <th>Response</th>
+                                    <th>Detected By</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scan-results-list"></tbody>
                         </table>
                     </div>
                 </div>

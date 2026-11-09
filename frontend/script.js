@@ -74,6 +74,8 @@ function switchTab(tabId) {
     // Refresh data depending on new Tab
     if (tabId === 'dashboard-tab') {
         fetchTargets();
+    } else if (tabId === 'scanner-tab') {
+        fetchScan();
     } else if (tabId === 'history-tab') {
         fetchGlobalHistory();
     } else if (tabId === 'alerts-tab') {
@@ -810,6 +812,131 @@ function triggerSpeedTest() {
             fetchSpeedTest();
         })
         .catch(err => console.error('Speedtest trigger error:', err));
+}
+
+// IP Scanner
+let scanPollTimer = null;
+
+function fetchScan() {
+    fetch('/api/scan')
+        .then(res => res.json())
+        .then(renderScan)
+        .catch(err => console.error('Scan fetch error:', err));
+}
+
+function setScanStatus(text, isError) {
+    const status = document.getElementById('scan-status');
+    status.innerText = text;
+    status.className = isError ? 'text-danger' : 'text-secondary';
+}
+
+function renderScan(state) {
+    const ranges = state.local_ranges || [];
+    const input = document.getElementById('scan_range');
+    if (!input.value && !state.running && ranges.length > 0) {
+        input.value = state.range || ranges[0];
+    }
+
+    const list = document.getElementById('scan_local_ranges');
+    list.replaceChildren(...ranges.map(range => {
+        const option = document.createElement('option');
+        option.value = range;
+        return option;
+    }));
+
+    document.getElementById('btn-scan-start').style.display = state.running ? 'none' : '';
+    document.getElementById('btn-scan-stop').style.display = state.running ? '' : 'none';
+
+    const hosts = state.hosts || [];
+    if (state.running) {
+        setScanStatus(`Scanning ${state.range}: ${state.done} of ${state.total} checked, ${hosts.length} found`);
+    } else if (state.total > 0) {
+        const finished = state.done < state.total ? 'Scan stopped' : 'Scan complete';
+        setScanStatus(`${finished}: ${state.done} of ${state.total} checked, ${hosts.length} found`);
+    } else {
+        setScanStatus('Enter a range and start a scan.');
+    }
+
+    renderScanResults(hosts, state.running);
+
+    clearTimeout(scanPollTimer);
+    if (state.running && activeTab === 'scanner-tab') {
+        scanPollTimer = setTimeout(fetchScan, 1000);
+    }
+}
+
+function renderScanResults(hosts, running) {
+    const tbody = document.getElementById('scan-results-list');
+    if (hosts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state text-secondary">${running ? 'Looking for devices...' : 'No devices to show.'}</td></tr>`;
+        return;
+    }
+
+    // Hostnames come from the network, so results are only ever set as text.
+    tbody.replaceChildren(...hosts.map(host => {
+        const tr = document.createElement('tr');
+        [host.ip, host.hostname || '-', host.mac || '-', `${host.latency}ms`, host.detected_by].forEach(text => {
+            const td = document.createElement('td');
+            td.textContent = text;
+            tr.appendChild(td);
+        });
+
+        const action = document.createElement('td');
+        const button = document.createElement('button');
+        const monitored = targetsData.some(t => t.host === host.ip && t.type === 'ping');
+        button.className = 'btn secondary btn-sm';
+        button.textContent = monitored ? 'Monitoring' : 'Monitor';
+        button.disabled = monitored;
+        button.addEventListener('click', () => monitorScannedHost(host, button));
+        action.appendChild(button);
+        tr.appendChild(action);
+        return tr;
+    }));
+}
+
+function monitorScannedHost(host, button) {
+    button.disabled = true;
+    fetch('/api/targets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: host.hostname || host.ip, host: host.ip, type: 'ping', interval: 10, tag: '', category: 'General' })
+    })
+        .then(res => {
+            if (!res.ok) throw new Error('Target rejected');
+            targetsData.push({ host: host.ip, type: 'ping' });
+            button.textContent = 'Monitoring';
+            fetchTargets();
+        })
+        .catch(err => {
+            button.disabled = false;
+            setScanStatus(`Could not monitor ${host.ip}.`, true);
+            console.error(err);
+        });
+}
+
+function startScan() {
+    const range = document.getElementById('scan_range').value.trim();
+    if (!range) {
+        setScanStatus('Enter an address range first.', true);
+        return;
+    }
+
+    fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range })
+    })
+        .then(async res => {
+            if (!res.ok) throw new Error((await res.text()).trim());
+            fetchScan();
+        })
+        .catch(err => setScanStatus(err.message, true));
+}
+
+function stopScan() {
+    fetch('/api/scan', { method: 'DELETE' })
+        .then(fetchScan)
+        .catch(err => console.error('Scan stop error:', err));
 }
 
 function exportCsv() {

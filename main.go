@@ -88,6 +88,7 @@ func onReady() {
 	http.HandleFunc("/api/speedtest", handleSpeedTest)
 	http.HandleFunc("/api/test_alerts", handleTestAlerts)
 	http.HandleFunc("/api/shutdown", handleShutdown)
+	http.HandleFunc("/api/scan", handleScan)
 
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
