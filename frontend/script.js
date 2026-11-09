@@ -534,7 +534,7 @@ function fetchSettings() {
             }
             document.getElementById('smtp_host').value = data.smtp_host || '';
             document.getElementById('smtp_port').value = data.smtp_port || '';
-            document.getElementById('smtp_protocol').value = data.smtp_protocol || 'STARTTLS';
+            document.getElementById('smtp_protocol').value = data.smtp_protocol || 'starttls';
             document.getElementById('smtp_user').value = data.smtp_user || '';
             document.getElementById('smtp_pass').value = data.smtp_pass || '';
             document.getElementById('smtp_from').value = data.smtp_from || '';
@@ -572,7 +572,7 @@ function saveSettings() {
     fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(payload)
     })
         .then(res => res.json())
         .then(data => {

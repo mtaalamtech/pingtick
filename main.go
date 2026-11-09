@@ -403,6 +403,11 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			"alert_email_to":       getSetting("alert_email_to"),
 			"daily_report_enabled": getSetting("daily_report_enabled"),
 			"daily_report_time":    getSetting("daily_report_time"),
+			"data_retention":       getSetting("data_retention"),
+			"smtp_protocol":        getSetting("smtp_protocol"),
+			"smtp_from":            getSetting("smtp_from"),
+			"target_categories":    getSetting("target_categories"),
+			"target_tags":          getSetting("target_tags"),
 		}
 		json.NewEncoder(w).Encode(settings)
 
