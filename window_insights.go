@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -146,18 +145,6 @@ func safeFileName(name string) string {
 		}
 		return '-'
 	}, name)
-}
-
-func writeHistoryCSV(w io.Writer, history []LatencyHistory) error {
-	if _, err := io.WriteString(w, "Timestamp,Status,Latency(ms),ReplyIP,TTL\n"); err != nil {
-		return err
-	}
-	for _, h := range history {
-		if _, err := fmt.Fprintf(w, "%s,%s,%d,%s,%d\n", h.Timestamp, h.Status, h.Latency, h.ReplyIP, h.TTL); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func showInsightsFromWindow() {

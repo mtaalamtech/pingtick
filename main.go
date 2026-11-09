@@ -307,14 +307,13 @@ func handleExportGlobalCsv(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dateStr := period
-	if period == "today" {
-		dateStr = time.Now().Format("2006-01-02")
-	} else if period == "yesterday" {
+	// Built only from validated dates, as it is written into the file and its name.
+	dateStr := time.Now().Format("2006-01-02")
+	if period == "yesterday" {
 		dateStr = time.Now().AddDate(0, 0, -1).Format("2006-01-02")
 	} else if period == "this_week" {
 		dateStr = time.Now().AddDate(0, 0, -7).Format("2006-01-02") + "_to_" + time.Now().Format("2006-01-02")
-	} else if period == "custom" {
+	} else if period == "custom" && customStart != "" && customEnd != "" {
 		dateStr = customStart + "_to_" + customEnd
 	}
 
@@ -405,10 +404,8 @@ func handleExportGlobalCsv(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Average Uptime:,%.2f%%\n\n", avgUptime)
 
 	fmt.Fprintf(w, "--- TARGET METRICS ---\n")
-	w.Write([]byte("Date,Target Name,Type,Category,Host,Current Status,Total Checks,Up Count,Down Count,Uptime %,Avg Latency(ms)\n"))
-	for _, rp := range reports {
-		fmt.Fprintf(w, "%s,%s,%s,%s,%s,%s,%d,%d,%d,%.1f,%.1f\n",
-			rp.Date, rp.Name, rp.Type, rp.Category, rp.Host, rp.Current, rp.Checks, rp.Up, rp.Down, rp.UptimePct, rp.AvgLatency)
+	if err := writeReportCSV(w, reports); err != nil {
+		log.Printf("Could not write report export: %v", err)
 	}
 }
 
