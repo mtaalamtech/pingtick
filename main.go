@@ -59,7 +59,7 @@ func onReady() {
 	// Start the background monitoring engine
 	StartMonitoring()
 
-	// Start auto 5-min speed test engine
+	// Start hourly automatic speed test
 	StartAutoSpeedTest()
 
 	// Setup embedded filesystem serving

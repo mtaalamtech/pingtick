@@ -155,7 +155,7 @@ func StartAutoSpeedTest() {
 	// Wait 10 seconds before starting the first automatic benchmark
 	time.AfterFunc(10*time.Second, func() {
 		RunSpeedTest() // initial
-		ticker := time.NewTicker(5 * time.Minute)
+		ticker := time.NewTicker(1 * time.Hour)
 		for range ticker.C {
 			RunSpeedTest()
 		}
