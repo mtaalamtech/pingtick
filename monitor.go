@@ -611,29 +611,40 @@ func GetGlobalHistory() ([]LatencyHistory, error) {
 
 var errInvalidReportDate = errors.New("start and end must be dates in YYYY-MM-DD format")
 
-func isReportDate(value string) bool {
-	_, err := time.Parse("2006-01-02", value)
-	return err == nil
+// reportWindow returns the UTC range for a report, in the format history is
+// stored in. Days are the user's local days, and the end is exclusive.
+func reportWindow(period, customStart, customEnd string, now time.Time) (string, string, error) {
+	const stored = "2006-01-02 15:04:05"
+	day := func(offset int) time.Time {
+		return time.Date(now.Year(), now.Month(), now.Day()+offset, 0, 0, 0, 0, now.Location())
+	}
+
+	from, to := day(0), day(1)
+	switch {
+	case period == "yesterday":
+		from, to = day(-1), day(0)
+	case period == "this_week":
+		from = day(-7)
+	case period == "custom" && customStart != "" && customEnd != "":
+		start, startErr := time.ParseInLocation("2006-01-02", customStart, now.Location())
+		end, endErr := time.ParseInLocation("2006-01-02", customEnd, now.Location())
+		if startErr != nil || endErr != nil {
+			return "", "", errInvalidReportDate
+		}
+		from, to = start, end.AddDate(0, 0, 1)
+	}
+	return from.UTC().Format(stored), to.UTC().Format(stored), nil
 }
 
 func GetGlobalReport(period, customStart, customEnd string) ([]TargetReport, error) {
-	var timeArgs []any
-	timeFilter := `substr(h.timestamp, 1, 10) = substr(datetime('now', 'localtime'), 1, 10)`
-	if period == "yesterday" {
-		timeFilter = `substr(h.timestamp, 1, 10) = substr(datetime('now', '-1 day', 'localtime'), 1, 10)`
-	} else if period == "this_week" {
-		timeFilter = `substr(h.timestamp, 1, 10) >= substr(datetime('now', '-7 days', 'localtime'), 1, 10)`
-	} else if period == "custom" && customStart != "" && customEnd != "" {
-		if !isReportDate(customStart) || !isReportDate(customEnd) {
-			return nil, errInvalidReportDate
-		}
-		timeFilter = `substr(h.timestamp, 1, 10) BETWEEN ? AND ?`
-		timeArgs = []any{customStart, customEnd}
+	from, to, err := reportWindow(period, customStart, customEnd, time.Now())
+	if err != nil {
+		return nil, err
 	}
 
-	query := fmt.Sprintf(`
-		SELECT 
-			substr(h.timestamp, 1, 10) as d,
+	query := `
+		SELECT
+			date(h.timestamp, 'localtime') as d,
 			COALESCE(t.name, h.target_id),
 			COALESCE(t.type, 'unknown'),
 			COALESCE(t.tag, 'General'),
@@ -645,12 +656,12 @@ func GetGlobalReport(period, customStart, customEnd string) ([]TargetReport, err
 			SUM(h.latency) as total_latency
 		FROM latency_history h
 		LEFT JOIN targets t ON h.target_id = t.id
-		WHERE %s
+		WHERE h.timestamp >= ? AND h.timestamp < ?
 		GROUP BY t.id, d
 		ORDER BY d DESC, COALESCE(t.name, h.target_id) ASC
-	`, timeFilter)
+	`
 
-	rows, err := db.Query(query, timeArgs...)
+	rows, err := db.Query(query, from, to)
 	if err != nil {
 		return nil, err
 	}
