@@ -114,8 +114,25 @@ func onReady() {
 	openBrowser(activeURL)
 
 	go func() {
-		log.Fatal(http.Serve(listener, nil))
+		log.Fatal(http.Serve(listener, localOnly(http.DefaultServeMux)))
 	}()
+}
+
+// localOnly blocks requests that come from other websites, including through
+// DNS rebinding, so a web page cannot read or drive this local API.
+func localOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, _, err := net.SplitHostPort(r.Host)
+		if err != nil || (host != "localhost" && host != "127.0.0.1") {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		if origin := r.Header.Get("Origin"); origin != "" && origin != "http://"+r.Host {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func isKnownTargetType(t string) bool {
@@ -425,6 +442,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			"smtp_from":            getSetting("smtp_from"),
 			"target_categories":    getSetting("target_categories"),
 			"target_tags":          getSetting("target_tags"),
+			"show_public_ip":       getSetting("show_public_ip"),
 		}
 		json.NewEncoder(w).Encode(settings)
 
@@ -468,7 +486,7 @@ func openBrowser(url string) {
 func handleSpeedTest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method == http.MethodGet {
-		json.NewEncoder(w).Encode(speedTestSnapshot())
+		json.NewEncoder(w).Encode(speedTestForDisplay())
 	} else if r.Method == http.MethodPost {
 		if speedTestSnapshot().IsRunning {
 			w.Write([]byte(`{"status": "already_running"}`))

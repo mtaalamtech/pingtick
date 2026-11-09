@@ -48,7 +48,7 @@ For a deeper dive, click the **Insights** button on any target row. A large over
 ## 4. On-Demand Internet Speed Testing
 
 At the top of the **Dashboard** sits the `Internet Speed Test Gateway`.
-- The Gateway automatically queries your **Public ISP Provider and Edge IP**.
+- Your public IP and ISP are hidden by default so they cannot appear during a remote session. To show them, turn on **Show public IP and ISP** under **System Settings**.
 - Click **Run Speed Test**. You will see the button state change to _Testing..._.
 - The Go backend will spin up an isolated worker that streams packets to/from Cloudflare's globally distributed Edge servers. 
 - Once completed, you will receive real-world **Download (Mbps)**, **Upload (Mbps)**, and bare-metal **ISP Latency (ms)** metrics.

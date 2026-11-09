@@ -16,8 +16,8 @@ type SpeedTestResult struct {
 	UploadSpeed   float64   `json:"upload_speed"`   // in Mbps
 	Latency       int64     `json:"latency"`        // in ms
 	IsRunning     bool      `json:"is_running"`
-	ISP           string    `json:"isp"`
-	IPAddr        string    `json:"ip_address"`
+	ISP           string    `json:"isp,omitempty"`
+	IPAddr        string    `json:"ip_address,omitempty"`
 }
 
 var (
@@ -29,6 +29,22 @@ func speedTestSnapshot() SpeedTestResult {
 	speedTestMu.Lock()
 	defer speedTestMu.Unlock()
 	return currentSpeedTest
+}
+
+// publicIPVisible is off unless explicitly enabled, so the public IP and ISP
+// stay off screen during remote sessions.
+func publicIPVisible() bool {
+	return getSetting("show_public_ip") == "true"
+}
+
+// speedTestForDisplay is the only view of the result that leaves the server.
+func speedTestForDisplay() SpeedTestResult {
+	result := speedTestSnapshot()
+	if !publicIPVisible() {
+		result.ISP = ""
+		result.IPAddr = ""
+	}
+	return result
 }
 
 func RunSpeedTest() {
@@ -46,7 +62,10 @@ func RunSpeedTest() {
 	client := &http.Client{Timeout: 60 * time.Second}
 	defer client.CloseIdleConnections()
 
-	isp, ipAddr := lookupISP(client)
+	var isp, ipAddr string
+	if publicIPVisible() {
+		isp, ipAddr = lookupISP(client)
+	}
 	latency := measureLatency(client)
 	download := measureDownload(client)
 	upload := measureUpload(client)
