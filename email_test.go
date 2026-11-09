@@ -27,9 +27,16 @@ type fakeSMTP struct {
 	cert        tls.Certificate
 	implicitTLS bool
 
-	mu       sync.Mutex
-	password string
-	message  string
+	mu         sync.Mutex
+	password   string
+	message    string
+	recipients []string
+}
+
+func (s *fakeSMTP) accepted() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.recipients...)
 }
 
 func (s *fakeSMTP) recorded() (string, string) {
@@ -81,6 +88,15 @@ func (s *fakeSMTP) serve(conn net.Conn) {
 			s.password = string(password)
 			s.mu.Unlock()
 			reply("235 ok")
+		case strings.HasPrefix(command, "RCPT TO"):
+			if strings.Contains(command, "REFUSED") {
+				reply("550 no such user")
+				continue
+			}
+			s.mu.Lock()
+			s.recipients = append(s.recipients, strings.ToLower(command[strings.Index(command, "<")+1:strings.Index(command, ">")]))
+			s.mu.Unlock()
+			reply("250 ok")
 		case command == "DATA":
 			reply("354 send it")
 			var message strings.Builder
@@ -177,6 +193,70 @@ func TestSendEmailAlertDeliversOverVerifiedConnection(t *testing.T) {
 		if password != testSMTPPass || !strings.Contains(message, "target down") {
 			t.Fatalf("%s: password %q, message %q", protocol, password, message)
 		}
+	}
+}
+
+func TestSplitRecipients(t *testing.T) {
+	got := splitRecipients(" a@x.test, b@x.test;c@x.test\r\n d@x.test ,, ")
+	want := []string{"a@x.test", "b@x.test", "c@x.test", "d@x.test"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("recipients = %q", got)
+	}
+	if got := splitRecipients(" , ; "); len(got) != 0 {
+		t.Fatalf("recipients = %q", got)
+	}
+}
+
+func TestSendEmailAlertReachesEveryRecipient(t *testing.T) {
+	server, port, pool := startFakeSMTP(t, false)
+	useSMTPRoots(t, pool)
+
+	err := sendEmailAlert("127.0.0.1", port, testSMTPUser, testSMTPPass, testSMTPUser, "one@x.test, two@x.test; three@x.test", "starttls", "target down")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(server.accepted(), "|"); got != "one@x.test|two@x.test|three@x.test" {
+		t.Fatalf("accepted = %q", got)
+	}
+	if _, message := server.recorded(); !strings.Contains(message, "To: one@x.test, two@x.test, three@x.test\r\n") {
+		t.Fatalf("message = %q", message)
+	}
+}
+
+func TestDeliverEmailContinuesPastRefusedRecipient(t *testing.T) {
+	server, port, pool := startFakeSMTP(t, false)
+	useSMTPRoots(t, pool)
+
+	rejected, err := deliverEmail("127.0.0.1", port, testSMTPUser, testSMTPPass, testSMTPUser, "one@x.test, refused@x.test, two@x.test", "starttls", "target down")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rejected) != 1 || rejected[0] != "refused@x.test" {
+		t.Fatalf("rejected = %q", rejected)
+	}
+	if got := strings.Join(server.accepted(), "|"); got != "one@x.test|two@x.test" {
+		t.Fatalf("accepted = %q", got)
+	}
+	if _, message := server.recorded(); !strings.Contains(message, "target down") {
+		t.Fatal("message was not delivered to the accepted recipients")
+	}
+}
+
+func TestDeliverEmailFailsWhenEveryRecipientIsRefused(t *testing.T) {
+	server, port, pool := startFakeSMTP(t, false)
+	useSMTPRoots(t, pool)
+
+	if _, err := deliverEmail("127.0.0.1", port, testSMTPUser, testSMTPPass, testSMTPUser, "refused@x.test", "starttls", "x"); err == nil {
+		t.Fatal("expected an error")
+	}
+	if _, message := server.recorded(); message != "" {
+		t.Fatalf("message was sent: %q", message)
+	}
+}
+
+func TestDeliverEmailNeedsARecipient(t *testing.T) {
+	if _, err := deliverEmail("127.0.0.1", "1", testSMTPUser, testSMTPPass, testSMTPUser, " , ", "starttls", "x"); err == nil {
+		t.Fatal("expected an error")
 	}
 }
 

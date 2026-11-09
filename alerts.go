@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -211,11 +212,15 @@ func sendTestNotification(triggerType, message string) error {
 			if from == "" {
 				from = user
 			}
-			err := sendEmailAlert(host, port, user, pass, from, to, protocol, message)
+			rejected, err := deliverEmail(host, port, user, pass, from, to, protocol, message)
 			if err != nil {
 				log.Printf("Failed to send test Email alert: %v", err)
+				return err
 			}
-			return err
+			if len(rejected) > 0 {
+				return errors.New("sent, but the mail server refused: " + strings.Join(rejected, ", "))
+			}
+			return nil
 		}
 		return errors.New("save the SMTP host, port, user and recipient first")
 	}
