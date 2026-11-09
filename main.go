@@ -112,6 +112,14 @@ func onReady() {
 	}()
 }
 
+func isKnownTargetType(t string) bool {
+	switch t {
+	case "ping", "ssl", "port", "dns", "snmp", "bandwidth", "wmi":
+		return true
+	}
+	return false
+}
+
 func handleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"status": "ok"}`))
@@ -147,7 +155,7 @@ func handleTargets(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid inputs details", http.StatusBadRequest)
 			return
 		}
-		if t.Type != "ping" && t.Type != "ssl" && t.Type != "port" && t.Type != "dns" {
+		if !isKnownTargetType(t.Type) {
 			t.Type = "ping"
 		}
 
@@ -162,6 +170,9 @@ func handleTargets(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
+		}
+		if !isKnownTargetType(t.Type) {
+			t.Type = "ping"
 		}
 		if t.ID == "" || t.Name == "" || t.Host == "" || t.Interval <= 0 {
 			http.Error(w, "Invalid input details", http.StatusBadRequest)
