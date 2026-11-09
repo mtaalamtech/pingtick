@@ -23,6 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     switchTab(activeTab);
 
+    // Row buttons carry only an id, so target names never reach inline handlers
+    const targetActions = { insights: showTargetHistory, clone: cloneTarget, edit: editTarget, delete: deleteTarget };
+    document.getElementById('dashboard-targets-list').addEventListener('click', (e) => {
+        const button = e.target.closest('button[data-action]');
+        if (button) targetActions[button.dataset.action](button.dataset.id);
+    });
+
     // Initial load generic setup
     fetchTargets();
     fetchSettings();
@@ -190,13 +197,13 @@ function renderDashboardList() {
             <td>${escapeHtml(replyIp)}</td>
             <td>${healthStr}</td>
             <td>${statsStr}</td>
-            <td><span class="text-secondary">${typeIndicator}</span></td>
+            <td><span class="text-secondary">${escapeHtml(typeIndicator)}</span></td>
             <td class="text-secondary">${lastCheckStr}</td>
             <td style="white-space: nowrap;">
-                <button class="btn secondary btn-sm" onclick="showTargetHistory('${t.id}', '${escapeHtml(t.name)}')">Insights</button>
-                <button class="btn secondary btn-sm" onclick="cloneTarget('${t.id}')">Clone</button>
-                <button class="btn primary btn-sm" onclick="editTarget('${t.id}')">Edit</button>
-                <button class="btn danger btn-sm" onclick="deleteTarget('${t.id}')">Delete</button>
+                <button class="btn secondary btn-sm" data-action="insights" data-id="${escapeHtml(t.id)}">Insights</button>
+                <button class="btn secondary btn-sm" data-action="clone" data-id="${escapeHtml(t.id)}">Clone</button>
+                <button class="btn primary btn-sm" data-action="edit" data-id="${escapeHtml(t.id)}">Edit</button>
+                <button class="btn danger btn-sm" data-action="delete" data-id="${escapeHtml(t.id)}">Delete</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -214,13 +221,15 @@ function openAddModal() {
 
     if (cats.length === 0) cats = ['General'];
 
-    let catHtml = '';
-    cats.forEach(c => catHtml += `<option value="${c}">${c}</option>`);
-    document.getElementById('target_category').innerHTML = catHtml;
+    fillSelect('target_category', cats);
+    fillSelect('target_tag', tags, 'None');
+}
 
-    let tagHtml = '<option value="">None</option>';
-    tags.forEach(t => tagHtml += `<option value="${t}">${t}</option>`);
-    document.getElementById('target_tag').innerHTML = tagHtml;
+// Values are set through the DOM so settings text is never parsed as HTML.
+function fillSelect(id, values, emptyLabel) {
+    const options = values.map(value => new Option(value, value));
+    if (emptyLabel) options.unshift(new Option(emptyLabel, ''));
+    document.getElementById(id).replaceChildren(...options);
 }
 
 function editTarget(id) {
@@ -329,13 +338,8 @@ function openBatchModal() {
 
     if (cats.length === 0) cats = ['General'];
 
-    let catHtml = '';
-    cats.forEach(c => catHtml += `<option value="${c}">${c}</option>`);
-    document.getElementById('batch_category').innerHTML = catHtml;
-
-    let tagHtml = '<option value="">None</option>';
-    tags.forEach(t => tagHtml += `<option value="${t}">${t}</option>`);
-    document.getElementById('batch_tag').innerHTML = tagHtml;
+    fillSelect('batch_category', cats);
+    fillSelect('batch_tag', tags, 'None');
 }
 
 function closeBatchModal() {
@@ -594,8 +598,9 @@ function saveSettings() {
 
 let activeExportId = '';
 
-function showTargetHistory(id, name) {
-    document.getElementById('chart-modal-title').innerText = `Latency History - ${name}`;
+function showTargetHistory(id) {
+    const target = targetsData.find(t => t.id === id);
+    document.getElementById('chart-modal-title').innerText = `Latency History - ${target ? target.name : ''}`;
     activeExportId = id;
     document.getElementById('chart-modal').classList.add('active');
 
@@ -768,10 +773,9 @@ function fetchGlobalHistory() {
 }
 
 // Utility
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.innerText = str;
-    return div.innerHTML;
+function escapeHtml(value) {
+    const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value ?? '').replace(/[&<>"']/g, c => entities[c]);
 }
 
 // Speed Test Handlers

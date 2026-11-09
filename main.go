@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
@@ -251,6 +252,13 @@ func handleHistoryAll(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(history)
 }
 
+func reportErrorStatus(err error) int {
+	if errors.Is(err, errInvalidReportDate) {
+		return http.StatusBadRequest
+	}
+	return http.StatusInternalServerError
+}
+
 func handleHistoryReport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	period := r.URL.Query().Get("period")
@@ -259,7 +267,7 @@ func handleHistoryReport(w http.ResponseWriter, r *http.Request) {
 	}
 	reports, err := GetGlobalReport(period, r.URL.Query().Get("start"), r.URL.Query().Get("end"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), reportErrorStatus(err))
 		return
 	}
 	json.NewEncoder(w).Encode(reports)
@@ -296,7 +304,7 @@ func handleExportGlobalCsv(w http.ResponseWriter, r *http.Request) {
 
 	reports, err := GetGlobalReport(period, customStart, customEnd)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), reportErrorStatus(err))
 		return
 	}
 

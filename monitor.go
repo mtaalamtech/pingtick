@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -598,14 +599,26 @@ func GetGlobalHistory() ([]LatencyHistory, error) {
 	return history, nil
 }
 
+var errInvalidReportDate = errors.New("start and end must be dates in YYYY-MM-DD format")
+
+func isReportDate(value string) bool {
+	_, err := time.Parse("2006-01-02", value)
+	return err == nil
+}
+
 func GetGlobalReport(period, customStart, customEnd string) ([]TargetReport, error) {
+	var timeArgs []any
 	timeFilter := `substr(h.timestamp, 1, 10) = substr(datetime('now', 'localtime'), 1, 10)`
 	if period == "yesterday" {
 		timeFilter = `substr(h.timestamp, 1, 10) = substr(datetime('now', '-1 day', 'localtime'), 1, 10)`
 	} else if period == "this_week" {
 		timeFilter = `substr(h.timestamp, 1, 10) >= substr(datetime('now', '-7 days', 'localtime'), 1, 10)`
 	} else if period == "custom" && customStart != "" && customEnd != "" {
-		timeFilter = fmt.Sprintf(`substr(h.timestamp, 1, 10) BETWEEN '%s' AND '%s'`, customStart, customEnd)
+		if !isReportDate(customStart) || !isReportDate(customEnd) {
+			return nil, errInvalidReportDate
+		}
+		timeFilter = `substr(h.timestamp, 1, 10) BETWEEN ? AND ?`
+		timeArgs = []any{customStart, customEnd}
 	}
 
 	query := fmt.Sprintf(`
@@ -627,7 +640,7 @@ func GetGlobalReport(period, customStart, customEnd string) ([]TargetReport, err
 		ORDER BY d DESC, COALESCE(t.name, h.target_id) ASC
 	`, timeFilter)
 
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, timeArgs...)
 	if err != nil {
 		return nil, err
 	}
