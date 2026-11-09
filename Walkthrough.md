@@ -23,7 +23,7 @@ PingTick supports four distinct types of network probes. To get started, navigat
 2. **TCP Port Handshake Check**:
    - Useful for: Seeing if a background service (like a database on port 5432) is actively accepting connections.
 3. **SSL Cert Expiry Monitor**:
-   - Useful for: Preventing website downtimes caused by forgotten SSL renewals.
+   - Useful for: Preventing website downtimes caused by forgotten SSL renewals. PingTick sends one Telegram or email warning at 30, 14, 7 and 1 days before expiry, and another once the certificate has expired. Rows expiring within 30 days turn amber in the monitor window.
 4. **DNS Resolution Benchmark**:
    - Useful for: Tracking upstream DNS resolver latency issues, finding out how long a hostname takes to return its pointer IP.
 

@@ -9,7 +9,7 @@ A premium, lightweight, and portable network monitoring tool designed for system
 1. **Concurrent Inspection Service**:
    - **ICMP Ping**: Real-time ping latency track.
    - **TCP Port Handshake**: Inspect service accessibility on custom ports (e.g., databases, web servers).
-   - **SSL Cert Expiry**: Monitors SSL/TLS expiration dates for websites.
+   - **SSL Cert Expiry**: Monitors SSL/TLS expiration dates for websites and warns at 30, 14, 7 and 1 days before expiry.
    - **IP Scanner**: Finds live devices on a range of up to 4096 addresses and adds them to monitoring in one click.
    
 2. **Interactive Glassmorphic Interface**:

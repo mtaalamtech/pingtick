@@ -140,7 +140,10 @@ func checkAlerting(t *Target) {
 	}
 }
 
-func sendNotifications(message string) {
+// sendNotifications returns true if at least one enabled channel accepted the message.
+func sendNotifications(message string) bool {
+	delivered := false
+
 	// 1. Send Telegram
 	telegramEnabled := getSetting("telegram_enabled") == "true"
 	if telegramEnabled {
@@ -150,6 +153,8 @@ func sendNotifications(message string) {
 			err := sendTelegramMessage(token, chatID, message)
 			if err != nil {
 				log.Printf("Failed to send Telegram alert: %v", err)
+			} else {
+				delivered = true
 			}
 		}
 	}
@@ -172,9 +177,12 @@ func sendNotifications(message string) {
 			err := sendEmailAlert(host, port, user, pass, from, to, protocol, message)
 			if err != nil {
 				log.Printf("Failed to send Email alert: %v", err)
+			} else {
+				delivered = true
 			}
 		}
 	}
+	return delivered
 }
 
 func sendTestNotification(triggerType, message string) {

@@ -178,6 +178,7 @@ func DeleteTarget(id string) error {
 
 	// Clean up old history for deleted target
 	db.Exec("DELETE FROM latency_history WHERE target_id = ?", id)
+	db.Exec("DELETE FROM settings WHERE key LIKE ?", sslAlertPrefix(id)+"%")
 	return nil
 }
 

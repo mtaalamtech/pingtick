@@ -88,8 +88,9 @@ const (
 	cdrfNewFont      = 0x02
 	cdrfNotifyItem   = 0x20
 
-	offlineRowColor = 0x00DCDCFF // light red, as BGR
-	unknownRowColor = 0x00E8E8E8 // light grey
+	offlineRowColor  = 0x00DCDCFF // light red, as BGR
+	unknownRowColor  = 0x00E8E8E8 // light grey
+	expiringRowColor = 0x00B3E8FF // light amber, as BGR
 )
 
 var (
@@ -559,11 +560,14 @@ func handleListCustomDraw(draw *nmLvCustomDraw) uintptr {
 		if int(draw.itemSpec) >= len(monitorUI.rows) || draw.itemState&cdisSelected != 0 {
 			return 0
 		}
-		switch monitorUI.rows[draw.itemSpec].Status {
-		case "offline":
+		row := monitorUI.rows[draw.itemSpec]
+		switch {
+		case row.Status == "offline":
 			draw.backColor = offlineRowColor
-		case "unknown":
+		case row.Status == "unknown":
 			draw.backColor = unknownRowColor
+		case certExpiringSoon(row):
+			draw.backColor = expiringRowColor
 		default:
 			return 0
 		}
