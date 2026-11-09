@@ -51,9 +51,12 @@ const (
 	mbIconWarning = 0x30
 	idYes         = 6
 
-	idAdd    = 1 // IDOK, so Enter in the host box adds the target
-	idDelete = 101
-	idWeb    = 102
+	idAdd      = 1 // IDOK, so Enter in the host box adds the target
+	idDelete   = 101
+	idWeb      = 102
+	idEdit     = 103
+	idClone    = 104
+	idInsights = 105
 
 	refreshTimerID = 1
 	refreshMillis  = 2000
@@ -69,22 +72,23 @@ const (
 	lvsExFullRowSel   = 0x00000020
 	lvsExDoubleBuffer = 0x00010000
 
-	lvmFirst                 = 0x1000
-	lvmGetNextItem           = lvmFirst + 12
-	lvmSetItemCount          = lvmFirst + 47
-	lvmSetExtendedStyle      = lvmFirst + 54
-	lvmInsertColumnW         = lvmFirst + 97
-	lvniSelected             = 0x0002
-	lvsicfNoScroll           = 0x0002
-	lvcfWidth                = 0x0002
-	lvcfText                 = 0x0004
-	lvifText                 = 0x0001
-	lvnGetDispInfoW    int32 = -177
-	nmCustomDraw       int32 = -12
+	lvmFirst                  = 0x1000
+	lvmGetNextItem            = lvmFirst + 12
+	lvmGetItemState           = lvmFirst + 44
+	lvisSelected              = 0x0002
+	lvmSetItemCount           = lvmFirst + 47
+	lvmSetExtendedStyle       = lvmFirst + 54
+	lvmInsertColumnW          = lvmFirst + 97
+	lvniSelected              = 0x0002
+	lvsicfNoScroll            = 0x0002
+	lvcfWidth                 = 0x0002
+	lvcfText                  = 0x0004
+	lvifText                  = 0x0001
+	lvnGetDispInfoW     int32 = -177
+	nmCustomDraw        int32 = -12
 
 	cddsPrePaint     = 0x00000001
 	cddsItemPrePaint = 0x00010001
-	cdisSelected     = 0x0001
 	cdrfNewFont      = 0x02
 	cdrfNotifyItem   = 0x20
 
@@ -99,36 +103,57 @@ var (
 	comctl32 = syscall.NewLazyDLL("comctl32.dll")
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
-	procRegisterClassEx   = user32.NewProc("RegisterClassExW")
-	procCreateWindowEx    = user32.NewProc("CreateWindowExW")
-	procDefWindowProc     = user32.NewProc("DefWindowProcW")
-	procGetMessage        = user32.NewProc("GetMessageW")
-	procIsDialogMessage   = user32.NewProc("IsDialogMessageW")
-	procTranslateMessage  = user32.NewProc("TranslateMessage")
-	procDispatchMessage   = user32.NewProc("DispatchMessageW")
-	procPostMessage       = user32.NewProc("PostMessageW")
-	procSendMessage       = user32.NewProc("SendMessageW")
-	procShowWindow        = user32.NewProc("ShowWindow")
-	procSetForeground     = user32.NewProc("SetForegroundWindow")
-	procIsWindowVisible   = user32.NewProc("IsWindowVisible")
-	procIsIconic          = user32.NewProc("IsIconic")
-	procMoveWindow        = user32.NewProc("MoveWindow")
-	procGetClientRect     = user32.NewProc("GetClientRect")
-	procInvalidateRect    = user32.NewProc("InvalidateRect")
-	procSetTimer          = user32.NewProc("SetTimer")
-	procSetWindowText     = user32.NewProc("SetWindowTextW")
-	procGetWindowText     = user32.NewProc("GetWindowTextW")
-	procMessageBox        = user32.NewProc("MessageBoxW")
-	procLoadCursor        = user32.NewProc("LoadCursorW")
-	procLoadIcon          = user32.NewProc("LoadIconW")
-	procGetDC             = user32.NewProc("GetDC")
-	procReleaseDC         = user32.NewProc("ReleaseDC")
-	procGetDeviceCaps     = gdi32.NewProc("GetDeviceCaps")
-	procCreateFont        = gdi32.NewProc("CreateFontW")
-	procInitCommonCtrls   = comctl32.NewProc("InitCommonControlsEx")
-	procGetModuleHandle   = kernel32.NewProc("GetModuleHandleW")
-	monitorWindow         atomic.Uintptr
-	monitorWindowCallback = syscall.NewCallback(monitorWindowProc)
+	procRegisterClassEx     = user32.NewProc("RegisterClassExW")
+	procCreateWindowEx      = user32.NewProc("CreateWindowExW")
+	procDefWindowProc       = user32.NewProc("DefWindowProcW")
+	procGetMessage          = user32.NewProc("GetMessageW")
+	procIsDialogMessage     = user32.NewProc("IsDialogMessageW")
+	procTranslateMessage    = user32.NewProc("TranslateMessage")
+	procDispatchMessage     = user32.NewProc("DispatchMessageW")
+	procPostMessage         = user32.NewProc("PostMessageW")
+	procSendMessage         = user32.NewProc("SendMessageW")
+	procShowWindow          = user32.NewProc("ShowWindow")
+	procSetForeground       = user32.NewProc("SetForegroundWindow")
+	procIsWindowVisible     = user32.NewProc("IsWindowVisible")
+	procIsIconic            = user32.NewProc("IsIconic")
+	procMoveWindow          = user32.NewProc("MoveWindow")
+	procGetClientRect       = user32.NewProc("GetClientRect")
+	procInvalidateRect      = user32.NewProc("InvalidateRect")
+	procSetTimer            = user32.NewProc("SetTimer")
+	procSetWindowText       = user32.NewProc("SetWindowTextW")
+	procGetWindowText       = user32.NewProc("GetWindowTextW")
+	procMessageBox          = user32.NewProc("MessageBoxW")
+	procLoadCursor          = user32.NewProc("LoadCursorW")
+	procLoadIcon            = user32.NewProc("LoadIconW")
+	procGetDC               = user32.NewProc("GetDC")
+	procReleaseDC           = user32.NewProc("ReleaseDC")
+	procGetDeviceCaps       = gdi32.NewProc("GetDeviceCaps")
+	procCreateFont          = gdi32.NewProc("CreateFontW")
+	procInitCommonCtrls     = comctl32.NewProc("InitCommonControlsEx")
+	procGetModuleHandle     = kernel32.NewProc("GetModuleHandleW")
+	procEnableWindow        = user32.NewProc("EnableWindow")
+	procDestroyWindow       = user32.NewProc("DestroyWindow")
+	procGetWindowRect       = user32.NewProc("GetWindowRect")
+	procSetFocus            = user32.NewProc("SetFocus")
+	procBeginPaint          = user32.NewProc("BeginPaint")
+	procEndPaint            = user32.NewProc("EndPaint")
+	procFillRect            = user32.NewProc("FillRect")
+	procGetWindowTextLength = user32.NewProc("GetWindowTextLengthW")
+	procGetStockObject      = gdi32.NewProc("GetStockObject")
+	procSelectObject        = gdi32.NewProc("SelectObject")
+	procDeleteObject        = gdi32.NewProc("DeleteObject")
+	procCreatePen           = gdi32.NewProc("CreatePen")
+	procMoveToEx            = gdi32.NewProc("MoveToEx")
+	procLineTo              = gdi32.NewProc("LineTo")
+	procTextOut             = gdi32.NewProc("TextOutW")
+	procSetTextAlign        = gdi32.NewProc("SetTextAlign")
+	procSetTextColor        = gdi32.NewProc("SetTextColor")
+	procSetBkMode           = gdi32.NewProc("SetBkMode")
+
+	monitorWindow          atomic.Uintptr
+	monitorWindowCallback  = syscall.NewCallback(monitorWindowProc)
+	editorWindowCallback   = syscall.NewCallback(editorWindowProc)
+	insightsWindowCallback = syscall.NewCallback(insightsWindowProc)
 )
 
 type wndClassEx struct {
@@ -245,25 +270,47 @@ var monitorColumns = []monitorColumn{
 // monitorUI is only touched from the window's own thread.
 var monitorUI struct {
 	hwnd, list, hostBox, addBtn, deleteBtn, webBtn, statusBar uintptr
-	font                                                      uintptr
+	editBtn, cloneBtn, insightsBtn                            uintptr
+	font, instance, icon, cursor                              uintptr
 	dpi                                                       int32
 	rows                                                      []*Target
 	statusText                                                string
+}
+
+func registerWindowClass(name string, proc uintptr) error {
+	class := wndClassEx{
+		wndProc:    proc,
+		instance:   monitorUI.instance,
+		icon:       monitorUI.icon,
+		iconSm:     monitorUI.icon,
+		cursor:     monitorUI.cursor,
+		background: colorBtnFace + 1,
+		className:  wideString(name),
+	}
+	class.size = uint32(unsafe.Sizeof(class))
+	if atom, _, err := procRegisterClassEx.Call(uintptr(unsafe.Pointer(&class))); atom == 0 {
+		return err
+	}
+	return nil
 }
 
 func formatResult(t *Target) string {
 	if t.Status != "online" {
 		return "-"
 	}
-	switch t.Type {
+	return formatMeasurement(t.Type, t.Latency)
+}
+
+func formatMeasurement(targetType string, value int64) string {
+	switch targetType {
 	case "ssl":
-		return fmt.Sprintf("%d days", t.Latency)
+		return fmt.Sprintf("%d days", value)
 	case "bandwidth", "wmi":
-		return fmt.Sprintf("%d Mbps", t.Latency)
+		return fmt.Sprintf("%d Mbps", value)
 	case "snmp":
-		return fmt.Sprint(t.Latency)
+		return fmt.Sprint(value)
 	}
-	return fmt.Sprintf("%d ms", t.Latency)
+	return fmt.Sprintf("%d ms", value)
 }
 
 func formatBound(t *Target, value int64) string {
@@ -351,20 +398,17 @@ func runMonitorWindow() {
 	instance, _, _ := procGetModuleHandle.Call(0)
 	icon, _, _ := procLoadIcon.Call(instance, wideArg("APP"))
 	cursor, _, _ := procLoadCursor.Call(0, idcArrow)
+	monitorUI.instance, monitorUI.icon, monitorUI.cursor = instance, icon, cursor
 
-	class := wndClassEx{
-		wndProc:    monitorWindowCallback,
-		instance:   instance,
-		icon:       icon,
-		iconSm:     icon,
-		cursor:     cursor,
-		background: colorBtnFace + 1,
-		className:  wideString("PingTickMonitor"),
-	}
-	class.size = uint32(unsafe.Sizeof(class))
-	if atom, _, err := procRegisterClassEx.Call(uintptr(unsafe.Pointer(&class))); atom == 0 {
-		log.Printf("Could not register monitor window: %v", err)
-		return
+	for name, callback := range map[string]uintptr{
+		"PingTickMonitor":  monitorWindowCallback,
+		"PingTickEditor":   editorWindowCallback,
+		"PingTickInsights": insightsWindowCallback,
+	} {
+		if err := registerWindowClass(name, callback); err != nil {
+			log.Printf("Could not register window class %s: %v", name, err)
+			return
+		}
 	}
 
 	screen, _, _ := procGetDC.Call(0)
@@ -375,7 +419,7 @@ func runMonitorWindow() {
 		monitorUI.dpi = 96
 	}
 
-	hwnd, _, err := procCreateWindowEx.Call(wsExControlParent, uintptr(unsafe.Pointer(class.className)),
+	hwnd, _, err := procCreateWindowEx.Call(wsExControlParent, wideArg("PingTickMonitor"),
 		wideArg("PingTick Monitor"), wsOverlappedWindow, cwUseDefault, cwUseDefault,
 		uintptr(scaled(1120)), uintptr(scaled(540)), 0, 0, instance, 0)
 	if hwnd == 0 {
@@ -406,11 +450,27 @@ func runMonitorWindow() {
 	}
 }
 
-func createControl(instance uintptr, exStyle uintptr, class, text string, style, id uintptr) uintptr {
+func createChild(parent, instance, exStyle uintptr, class, text string, style, id uintptr) uintptr {
 	hwnd, _, _ := procCreateWindowEx.Call(exStyle, wideArg(class), wideArg(text), wsChild|wsVisible|style,
-		0, 0, 0, 0, monitorUI.hwnd, id, instance, 0)
+		0, 0, 0, 0, parent, id, instance, 0)
 	sendMessage(hwnd, wmSetFont, monitorUI.font, 1)
 	return hwnd
+}
+
+func createControl(instance uintptr, exStyle uintptr, class, text string, style, id uintptr) uintptr {
+	return createChild(monitorUI.hwnd, instance, exStyle, class, text, style, id)
+}
+
+func createVirtualList(parent, instance uintptr) uintptr {
+	list := createChild(parent, instance, wsExClientEdge, "SysListView32", "",
+		wsTabStop|wsBorder|lvsReport|lvsSingleSel|lvsShowSelAlway|lvsOwnerData, 0)
+	sendMessage(list, lvmSetExtendedStyle, 0, lvsExFullRowSel|lvsExGridLines|lvsExDoubleBuffer)
+	return list
+}
+
+func addListColumn(list uintptr, index int, title string, width int32) {
+	column := lvColumn{mask: lvcfText | lvcfWidth, width: scaled(width), text: wideString(title)}
+	sendMessage(list, lvmInsertColumnW, uintptr(index), uintptr(unsafe.Pointer(&column)))
 }
 
 func createMonitorControls(instance uintptr) {
@@ -421,17 +481,16 @@ func createMonitorControls(instance uintptr) {
 	monitorUI.hostBox = createControl(instance, wsExClientEdge, "Edit", "", wsTabStop|esAutoHScroll, 0)
 	sendMessage(monitorUI.hostBox, emSetCueBanner, 1, wideArg("IP, hostname or host:port"))
 	monitorUI.addBtn = createControl(instance, 0, "Button", "Add", wsTabStop|bsDefPushButton, idAdd)
+	monitorUI.editBtn = createControl(instance, 0, "Button", "Edit", wsTabStop, idEdit)
+	monitorUI.cloneBtn = createControl(instance, 0, "Button", "Clone", wsTabStop, idClone)
+	monitorUI.insightsBtn = createControl(instance, 0, "Button", "Insights", wsTabStop, idInsights)
 	monitorUI.deleteBtn = createControl(instance, 0, "Button", "Delete Selected", wsTabStop, idDelete)
 	monitorUI.webBtn = createControl(instance, 0, "Button", "Web Dashboard", wsTabStop, idWeb)
 	monitorUI.statusBar = createControl(instance, 0, "Static", "", 0, 0)
 
-	monitorUI.list = createControl(instance, wsExClientEdge, "SysListView32", "",
-		wsTabStop|wsBorder|lvsReport|lvsSingleSel|lvsShowSelAlway|lvsOwnerData, 0)
-	sendMessage(monitorUI.list, lvmSetExtendedStyle, 0, lvsExFullRowSel|lvsExGridLines|lvsExDoubleBuffer)
-
+	monitorUI.list = createVirtualList(monitorUI.hwnd, instance)
 	for i := range monitorColumns {
-		column := lvColumn{mask: lvcfText | lvcfWidth, width: scaled(monitorColumns[i].width), text: wideString(monitorColumns[i].title)}
-		sendMessage(monitorUI.list, lvmInsertColumnW, uintptr(i), uintptr(unsafe.Pointer(&column)))
+		addListColumn(monitorUI.list, i, monitorColumns[i].title, monitorColumns[i].width)
 	}
 }
 
@@ -449,10 +508,13 @@ func layoutMonitorWindow() {
 		moveControl(hwnd, x, gap, width, rowHeight)
 		x += width + gap
 	}
-	place(monitorUI.hostBox, scaled(260))
-	place(monitorUI.addBtn, scaled(70))
-	place(monitorUI.deleteBtn, scaled(120))
-	place(monitorUI.webBtn, scaled(120))
+	place(monitorUI.hostBox, scaled(240))
+	place(monitorUI.addBtn, scaled(64))
+	place(monitorUI.editBtn, scaled(64))
+	place(monitorUI.cloneBtn, scaled(64))
+	place(monitorUI.insightsBtn, scaled(76))
+	place(monitorUI.deleteBtn, scaled(116))
+	place(monitorUI.webBtn, scaled(116))
 
 	listTop := gap*2 + rowHeight
 	moveControl(monitorUI.list, gap, listTop, client.right-gap*2, client.bottom-listTop-statusHeight-gap*2)
@@ -481,8 +543,22 @@ func refreshMonitorRows() {
 	}
 }
 
+func showWindowMessage(owner uintptr, text string, flags uintptr) {
+	procMessageBox.Call(owner, wideArg(text), wideArg("PingTick"), flags)
+}
+
 func showMonitorMessage(text string) {
-	procMessageBox.Call(monitorUI.hwnd, wideArg(text), wideArg("PingTick"), mbOK|mbIconWarning)
+	showWindowMessage(monitorUI.hwnd, text, mbOK|mbIconWarning)
+}
+
+// selectedTarget returns the selected row, telling the user if there is none.
+func selectedTarget() *Target {
+	selected := int32(sendMessage(monitorUI.list, lvmGetNextItem, ^uintptr(0), lvniSelected))
+	if selected < 0 || int(selected) >= len(monitorUI.rows) {
+		showMonitorMessage("Select a target first.")
+		return nil
+	}
+	return monitorUI.rows[selected]
 }
 
 func addTargetFromWindow() {
@@ -511,13 +587,11 @@ func addTargetFromWindow() {
 }
 
 func deleteSelectedTarget() {
-	selected := int32(sendMessage(monitorUI.list, lvmGetNextItem, ^uintptr(0), lvniSelected))
-	if selected < 0 || int(selected) >= len(monitorUI.rows) {
-		showMonitorMessage("Select a target first.")
+	target := selectedTarget()
+	if target == nil {
 		return
 	}
 
-	target := monitorUI.rows[selected]
 	question := fmt.Sprintf("Stop monitoring %s? Its history will be deleted.", target.Name)
 	answer, _, _ := procMessageBox.Call(monitorUI.hwnd, wideArg(question), wideArg("PingTick"), mbYesNo|mbIconWarning)
 	if answer != idYes {
@@ -535,14 +609,17 @@ func deleteSelectedTarget() {
 
 func fillListCell(info *nmLvDispInfo) {
 	item := &info.item
-	if item.mask&lvifText == 0 || item.textMax <= 0 {
+	if item.mask&lvifText == 0 || int(item.item) >= len(monitorUI.rows) || int(item.subItem) >= len(monitorColumns) {
 		return
 	}
-	if int(item.item) >= len(monitorUI.rows) || int(item.subItem) >= len(monitorColumns) {
-		return
-	}
+	copyCellText(item, monitorColumns[item.subItem].value(monitorUI.rows[item.item]))
+}
 
-	text, err := syscall.UTF16FromString(monitorColumns[item.subItem].value(monitorUI.rows[item.item]))
+func copyCellText(item *lvItem, value string) {
+	if item.textMax <= 0 {
+		return
+	}
+	text, err := syscall.UTF16FromString(value)
 	if err != nil {
 		return
 	}
@@ -552,12 +629,18 @@ func fillListCell(info *nmLvDispInfo) {
 	buffer[size-1] = 0
 }
 
+// listRowSelected asks the list directly, because the item state in custom
+// draw reports every row as selected when LVS_SHOWSELALWAYS is set.
+func listRowSelected(list, row uintptr) bool {
+	return sendMessage(list, lvmGetItemState, row, lvisSelected)&lvisSelected != 0
+}
+
 func handleListCustomDraw(draw *nmLvCustomDraw) uintptr {
 	switch draw.drawStage {
 	case cddsPrePaint:
 		return cdrfNotifyItem
 	case cddsItemPrePaint:
-		if int(draw.itemSpec) >= len(monitorUI.rows) || draw.itemState&cdisSelected != 0 {
+		if int(draw.itemSpec) >= len(monitorUI.rows) || listRowSelected(monitorUI.list, draw.itemSpec) {
 			return 0
 		}
 		row := monitorUI.rows[draw.itemSpec]
@@ -613,6 +696,12 @@ func monitorWindowProc(hwnd, msg, wParam, lParam uintptr) uintptr {
 		switch wParam & 0xFFFF {
 		case idAdd:
 			addTargetFromWindow()
+		case idEdit:
+			editTargetFromWindow()
+		case idClone:
+			cloneTargetFromWindow()
+		case idInsights:
+			showInsightsFromWindow()
 		case idDelete:
 			deleteSelectedTarget()
 		case idWeb:

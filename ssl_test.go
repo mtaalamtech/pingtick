@@ -34,7 +34,8 @@ func TestMain(m *testing.M) {
 	db.SetMaxOpenConns(1)
 	for _, q := range []string{
 		`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)`,
-		`CREATE TABLE targets (id TEXT PRIMARY KEY)`,
+		`CREATE TABLE targets (id TEXT PRIMARY KEY, name TEXT, host TEXT, type TEXT, interval INTEGER, tag TEXT, category TEXT,
+			snmp_community TEXT, snmp_oid TEXT, wmi_user TEXT, wmi_pass TEXT, wmi_namespace TEXT, wmi_query TEXT)`,
 		`CREATE TABLE latency_history (target_id TEXT)`,
 	} {
 		if _, err := db.Exec(q); err != nil {

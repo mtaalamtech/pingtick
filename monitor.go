@@ -161,6 +161,17 @@ func UpdateTarget(t *Target) error {
 		t.Latency = existing.Latency
 		t.LastCheck = time.Time{} // Force check
 		t.checking = existing.checking
+		if t.Host == existing.Host && t.Type == existing.Type {
+			t.ReplyIP = existing.ReplyIP
+			t.TTL = existing.TTL
+			t.SucceedCount = existing.SucceedCount
+			t.FailedCount = existing.FailedCount
+			t.TotalSent = existing.TotalSent
+			t.MinLatency = existing.MinLatency
+			t.MaxLatency = existing.MaxLatency
+			t.prevSnmpValue = existing.prevSnmpValue
+			t.prevSnmpTime = existing.prevSnmpTime
+		}
 		targets[t.ID] = t
 	}
 	mutex.Unlock()
@@ -193,7 +204,10 @@ func GetTargets() []*Target {
 	}
 
 	sort.Slice(list, func(i, j int) bool {
-		return list[i].Name < list[j].Name
+		if list[i].Name != list[j].Name {
+			return list[i].Name < list[j].Name
+		}
+		return list[i].ID < list[j].ID // keeps a selected row stable between refreshes
 	})
 
 	return list

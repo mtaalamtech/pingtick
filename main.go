@@ -288,9 +288,8 @@ func handleExportCsv(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"pingtick-export-%s.csv\"", id))
 
-	w.Write([]byte("Timestamp,Status,Latency(ms),ReplyIP,TTL\n"))
-	for _, h := range history {
-		fmt.Fprintf(w, "%s,%s,%d,%s,%d\n", h.Timestamp, h.Status, h.Latency, h.ReplyIP, h.TTL)
+	if err := writeHistoryCSV(w, history); err != nil {
+		log.Printf("Could not write history export: %v", err)
 	}
 }
 
