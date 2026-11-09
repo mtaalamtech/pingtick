@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PingTick - Premium Network Monitoring</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%230f172a' stroke='%233b82f6' stroke-width='6'/><polyline points='30,55 45,70 70,30' fill='none' stroke='%2310b981' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/><path d='M25 45 Q 50 20 75 45 T 75 75' fill='none' stroke='%233b82f6' stroke-width='4' opacity='0.5'/></svg>">
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="dark-theme">
+    <div id="tray-nag" class="badge"
+        style="position: fixed; top: 10px; right: 20px; background: rgba(59, 130, 246, 0.2); border: 1px solid var(--primary); padding: 10px 20px; border-radius: 8px; font-size: 13px; color: var(--text-muted); opacity: 0; pointer-events: none; transition: opacity 0.5s ease; z-index: 9999; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <strong class="text-primary" style="margin-right: 5px;">ℹ️ PingTick Daemon</strong><br>
+        Running smoothly in System Tray.<br>Safely close this tab anytime!
+    </div>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 100 100"
+                    style="margin-right: 8px; vertical-align: middle;">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="6" />
+                    <polyline points="30,55 45,70 70,30" fill="none" stroke="#10b981" stroke-width="8"
+                        stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M20 50 Q 35 25 50 50 T 80 50" fill="none" stroke="#3b82f6" stroke-width="6"
+                        stroke-linecap="round" />
+                </svg>
+                PingTick
+            </div>
+            <nav>
+                <a href="#" class="nav-link active" data-target="dashboard-tab">Dashboard</a>
+                <a href="#" class="nav-link" data-target="history-tab">Analytical Reports</a>
+                <a href="#" class="nav-link" data-target="alerts-tab">System Settings</a>
+            </nav>
+            <div class="sidebar-footer"
+                style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; margin-top: auto;">
+                <div style="opacity: 0.8; font-size: 0.9em;">v1.0.0 &bull; Connected</div>
+                <button class="btn danger btn-sm" style="width: 100%;" onclick="shutdownApp()">⏻ Shut Down
+                    Engine</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="content">
+            <!-- 1. Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <header>
+                    <div>
+                        <h1>Live Dashboard</h1>
+                        <p class="subtitle">Real-time latency check and SLA monitoring</p>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn secondary" onclick="openBatchModal()">+ Batch Import</button>
+                        <button class="btn primary" onclick="openAddModal()">+ Add New Target</button>
+                    </div>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card glass">
+                        <h3>Total Monitored</h3>
+                        <div class="value" id="stat-total">0</div>
+                    </div>
+                    <div class="stat-card glass border-success">
+                        <h3>Overall Uptime &nbsp; &nbsp; &nbsp; </h3>
+                        <div class="value text-success" id="stat-uptime">0%</div>
+                    </div>
+                    <div class="stat-card glass border-danger">
+                        <h3>Systems Offline</h3>
+                        <div class="value text-danger" id="stat-offline">0</div>
+                    </div>
+                    <div class="stat-card glass border-accent">
+                        <h3>Avg Latency</h3>
+                        <div class="value text-accent" id="stat-latency">0ms</div>
+                    </div>
+                </div>
+
+                <div class="speedtest-panel glass">
+                    <div class="speedtest-header">
+                        <h2>Internet Speed Test Gateway <span id="speed-isp-info" class="text-secondary"
+                                style="font-size: 0.9rem; margin-left: 10px; font-weight: 500;"></span></h2>
+                        <button class="btn secondary" id="btn-run-speedtest" onclick="triggerSpeedTest()">
+                            <span class="btn-icon">⚡</span> Run Speed Test
+                        </button>
+                    </div>
+                    <div class="speedtest-results">
+                        <div class="speedtest-result">
+                            <span class="label">Download</span>
+                            <span class="value" id="speed-download">0.00 <span class="unit">Mbps</span></span>
+                        </div>
+                        <div class="speedtest-result">
+                            <span class="label">Upload</span>
+                            <span class="value" id="speed-upload">0.00 <span class="unit">Mbps</span></span>
+                        </div>
+                        <div class="speedtest-result">
+                            <span class="label">ISP Latency</span>
+                            <span class="value" id="speed-latency">0 <span class="unit">ms</span></span>
+                        </div>
+                        <div class="speedtest-result">
+                            <span class="label">Last Check</span>
+                            <span class="value" id="speed-time">Never</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="main-panel glass">
+                    <div class="panel-header">
+                        <h2>Active System Monitors</h2>
+                        <span class="badge live-badge">LIVE UPDATES</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="targets-table">
+                            <thead>
+                                <tr>
+                                    <th>Tag Group</th>
+                                    <th>Status</th>
+                                    <th>Target Name</th>
+                                    <th>Target Host</th>
+                                    <th>Reply IP Address</th>
+                                    <th>Health (Uptime)</th>
+                                    <th>Performance / SSL Expiry</th>
+                                    <th>Check Type</th>
+                                    <th>Last Inspected</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-targets-list">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Global History Logs Tab -->
+            <div id="history-tab" class="tab-content">
+                <header>
+                    <div>
+                        <h1>Monitor Report Dashboard</h1>
+                        <p class="subtitle">Aggregate analytics and compliance history reporting</p>
+                    </div>
+                </header>
+
+                <div class="stats-grid" style="margin-bottom: 2rem;">
+                    <div class="stat-card glass">
+                        <h3>Total Monitored</h3>
+                        <div class="value" id="report-total">0</div>
+                    </div>
+                    <div class="stat-card glass border-success">
+                        <h3>Currently Up</h3>
+                        <div class="value text-success" id="report-up">0</div>
+                    </div>
+                    <div class="stat-card glass border-danger">
+                        <h3>Currently Down</h3>
+                        <div class="value text-danger" id="report-down">0</div>
+                    </div>
+                    <div class="stat-card glass border-accent">
+                        <h3>Avg Period Uptime</h3>
+                        <div class="value text-accent" id="report-uptime">0%</div>
+                    </div>
+                    <div class="stat-card glass">
+                        <h3>Internet (Mbps)</h3>
+                        <div class="value text-accent" id="report-speed">--</div>
+                    </div>
+                </div>
+
+                <div class="main-panel glass">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <label>Report Period:</label>
+                            <select id="report-period" onchange="toggleReportPeriod(); fetchGlobalHistory()"
+                                style="background: var(--bg-color); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 1rem; border-radius: 0.25rem;">
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="this_week">Last 7 Days</option>
+                                <option value="custom">Custom Date(s)</option>
+                            </select>
+                            <div id="custom-date-pickers" style="display: none; gap: 0.5rem; align-items: center;">
+                                <input type="date" id="report-start-date" onchange="fetchGlobalHistory()"
+                                    style="background: var(--bg-color); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 0.25rem;">
+                                <span class="text-secondary">to</span>
+                                <input type="date" id="report-end-date" onchange="fetchGlobalHistory()"
+                                    style="background: var(--bg-color); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem; border-radius: 0.25rem;">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn secondary btn-sm" onclick="exportGlobalCsv()">📥 CSV</button>
+                            <button class="btn secondary btn-sm" onclick="exportGlobalPdf()">🖨️ PDF</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="targets-table" style="font-size: 0.9rem;">
+                            <thead>
+                                <tr>
+                                    <th>DATE</th>
+                                    <th>NAME</th>
+                                    <th>TYPE</th>
+                                    <th>CATEGORY</th>
+                                    <th>HOST</th>
+                                    <th>CURRENT</th>
+                                    <th>CHECKS</th>
+                                    <th>UP / DOWN</th>
+                                    <th>UPTIME %</th>
+                                    <th>AVG LATENCY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="global-history-list">
+                                <!-- Populated dynamically when tab clicked -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Alerts Config Tab -->
+            <div id="alerts-tab" class="tab-content">
+                <header>
+                    <div>
+                        <h1>System Settings & Alerts</h1>
+                        <p class="subtitle">Platform configuration, notification channels, and global preferences</p>
+                    </div>
+                </header>
+
+                <div class="alerts-editor-grid">
+                    <!-- Telegram settings -->
+                    <div class="editor-section glass">
+                        <h2>Telegram Notification Channel</h2>
+                        <div class="form-group row">
+                            <label class="switch-container">
+                                <input type="checkbox" id="telegram_enabled">
+                                <span class="slider"></span>
+                                Enable Telegram Alerts
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="telegram_bot_token">Bot Token API ID</label>
+                            <input type="password" id="telegram_bot_token"
+                                placeholder="Example: 123456789:ABCdefGhIJKlmNoPQRsT">
+                        </div>
+                        <div class="form-group">
+                            <label for="telegram_chat_id">Telegram Chat / Channel ID</label>
+                            <input type="text" id="telegram_chat_id" placeholder="Example: -100123456789">
+                        </div>
+                        <button class="btn primary btn-sm" style="margin-top: 1rem;"
+                            onclick="testAlerts('telegram')">Test
+                            Telegram</button>
+                    </div>
+
+                    <!-- Scheduled Daily Reports -->
+                    <div class="editor-section glass">
+                        <h2>Automated Daily Status Reports</h2>
+                        <div class="form-group row">
+                            <label class="switch-container">
+                                <input type="checkbox" id="daily_report_enabled">
+                                <span class="slider"></span>
+                                Deliver Daily Summaries (Uses active Email/Telegram configuration)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="daily_report_time">Local Delivery Time (24h clock)</label>
+                            <input type="time" id="daily_report_time" value="08:00">
+                        </div>
+                    </div>
+
+                    <!-- Email SMTP Settings -->
+                    <div class="editor-section glass">
+                        <h2>SMTP Email Notification Channel</h2>
+                        <div class="form-group row">
+                            <label class="switch-container">
+                                <input type="checkbox" id="email_enabled">
+                                <span class="slider"></span>
+                                Enable Email alerts
+                            </label>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="smtp_host">SMTP Server Host</label>
+                                <input type="text" id="smtp_host" placeholder="smtp.gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="smtp_port">SMTP Server Port</label>
+                                <input type="text" id="smtp_port" placeholder="587">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="smtp_protocol">Security Protocol</label>
+                            <select id="smtp_protocol"
+                                style="width: 100%; background: var(--bg-color); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.8rem; border-radius: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                                <option value="starttls">TLS / STARTTLS (Port 587/25)</option>
+                                <option value="ssl">SSL / Implicit TLS (Port 465)</option>
+                                <option value="none">None / Plaintext (Port 25)</option>
+                            </select>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="smtp_user">SMTP Auth Username</label>
+                                <input type="text" id="smtp_user" placeholder="yourname@gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="smtp_pass">SMTP Auth Pass/Key</label>
+                                <input type="password" id="smtp_pass"
+                                    placeholder="Your account password or API App Password">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="smtp_from">From Address (Sender Email)</label>
+                            <input type="text" id="smtp_from" placeholder="alerts@company.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="alert_email_to">Send Warnings to Email(s) <span
+                                    class="text-secondary">(comma-separated)</span></label>
+                            <input type="text" id="alert_email_to"
+                                placeholder="sysadmin@company.com, devops@company.com">
+                        </div>
+                        <button class="btn primary btn-sm" style="margin-top: 1rem;" onclick="testAlerts('email')">Test
+                            Email</button>
+                    </div>
+
+                    <!-- General thresholds -->
+                    <div class="editor-section glass full-width">
+                        <h2>Anti-Flap & Data Management</h2>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="alert_threshold">Offline Notification Threshold <span
+                                        class="text-secondary">(Consecutive failures)</span></label>
+                                <input type="number" id="alert_threshold" min="1" max="10" value="3">
+                            </div>
+                            <div class="form-group">
+                                <label for="data_retention">Data Retention Strategy <span
+                                        class="text-secondary">(Performance tuning)</span></label>
+                                <select id="data_retention"
+                                    style="width: 100%; background: var(--bg-color); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); padding: 0.8rem; border-radius: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                                    <option value="1 month">Keep for 1 Month</option>
+                                    <option value="3 months">Keep for 3 Months</option>
+                                    <option value="6 months">Keep for 6 Months</option>
+                                    <option value="1 year">Keep for 1 Year</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Target Classifications -->
+                <div class="editor-section glass full-width" style="margin-top: 1rem;">
+                    <h2>Target Classifications</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="target_categories_setting">Categories <span
+                                    class="text-secondary">(Comma-separated)</span></label>
+                            <input type="text" id="target_categories_setting"
+                                placeholder="Infrastructure, External, Database, Services">
+                        </div>
+                        <div class="form-group">
+                            <label for="target_tags_setting">Tag Groups <span
+                                    class="text-secondary">(Comma-separated)</span></label>
+                            <input type="text" id="target_tags_setting"
+                                placeholder="Production, Staging, QA, Development">
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button class="btn primary" onclick="saveSettings()">Save System Settings</button>
+                    </div>
+                </div>
+            </div>
+    </div>
+    </main>
+    </div>
+
+    <!-- Modal for Adding New Endpoint Target -->
+    <div id="add-modal" class="modal-overlay">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Add New Endpoint Monitor</h2>
+                <button class="close-btn" onclick="closeAddModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="target_edit_id" value="">
+                <div class="form-group">
+                    <label for="target_name">Friendly Name</label>
+                    <input type="text" id="target_name" placeholder="Primary Gateway Router">
+                </div>
+                <div class="form-grid" id="host_port_grid">
+                    <div class="form-group" id="host_group" style="grid-column: span 2;">
+                        <label for="target_host">Endpoint Address (IP or Hostname)</label>
+                        <input type="text" id="target_host" placeholder="192.168.1.1 or google.com">
+                    </div>
+                    <div class="form-group" id="target_port_group" style="display: none;">
+                        <label for="target_port">Target Port</label>
+                        <input type="number" id="target_port" placeholder="443" min="1" max="65535">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="target_type">Inspection Protocol Type</label>
+                        <select id="target_type" onchange="togglePortInput()">
+                            <option value="ping">Raw ICMP Ping Check</option>
+                            <option value="port">TCP Port Handshake Check</option>
+                            <option value="ssl">SSL Cert Expiry Monitor</option>
+                            <option value="dns">DNS Resolution Benchmark</option>
+                            <option value="snmp">SNMP Custom OID Monitor</option>
+                            <option value="bandwidth">SNMP Bandwidth Tracker (Mbps)</option>
+                            <option value="wmi">WMI Bandwidth Tracker (Windows Remote)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="target_interval">Scan Interval (Seconds)</label>
+                        <input type="number" id="target_interval" min="5" value="10">
+                    </div>
+                </div>
+
+                <div class="form-grid" id="snmp_config_grid" style="display: none;">
+                    <div class="form-group">
+                        <label for="target_snmp_community">SNMP Community String</label>
+                        <input type="text" id="target_snmp_community" placeholder="public">
+                    </div>
+                    <div class="form-group">
+                        <label for="target_snmp_oid">Target SNMP OID Index</label>
+                        <input type="text" id="target_snmp_oid" placeholder="1.3.6.1.2.1.2.2.1.10.1">
+                    </div>
+                </div>
+
+                <div class="form-grid" id="wmi_config_grid" style="display: none;">
+                    <div class="form-group">
+                        <label for="target_wmi_user">WMI Username (Optional)</label>
+                        <input type="text" id="target_wmi_user" placeholder="Localhost omit / Administrator">
+                    </div>
+                    <div class="form-group">
+                        <label for="target_wmi_pass">WMI Password</label>
+                        <input type="password" id="target_wmi_pass" placeholder="********">
+                    </div>
+                    <div class="form-group">
+                        <label for="target_wmi_namespace">WMI Namespace</label>
+                        <input type="text" id="target_wmi_namespace" placeholder="root\cimv2">
+                    </div>
+                    <div class="form-group">
+                        <label for="target_wmi_query">Custom WQL Query (Optional)</label>
+                        <input type="text" id="target_wmi_query" placeholder="SELECT BytesTotalPersec FROM...">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="target_category">Category</label>
+                        <select id="target_category">
+                            <!-- Populated dynamically -->
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="target_tag">Tag Group</label>
+                        <select id="target_tag">
+                            <!-- Populated dynamically -->
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" onclick="closeAddModal()">Cancel</button>
+                <button class="btn primary" id="btn_submit_target" onclick="submitAddTarget()">Create Target</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Historical Latency Graph -->
+    <div id="chart-modal" class="modal-overlay">
+        <div class="modal-content glass chart-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="chart-modal-title" style="display:inline-block; margin-right: 15px;">System Insights -
+                        History</h2>
+                    <button class="btn secondary btn-sm" id="btn-export-csv" style="display:inline-block;"
+                        onclick="exportCsv()">Export CSV</button>
+                </div>
+                <button class="close-btn" onclick="closeChartModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; max-height: 80vh;">
+                <div class="chart-container">
+                    <canvas id="latencyChart"></canvas>
+                </div>
+                <!-- History Table logs added as requested -->
+                <div class="table-responsive" style="margin-top: 1.5rem;">
+                    <table class="targets-table" style="font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Sent On</th>
+                                <th>Reply IP Address</th>
+                                <th>Ping Time (ms)</th>
+                                <th>Ping TTL</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-log-list">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Import Modal -->
+    <div class="modal-overlay" id="batch-modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2>Batch Import Endpoints</h2>
+                <button class="close-btn" onclick="closeBatchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="batch_type">Inspection Protocol Type</label>
+                    <select id="batch_type">
+                        <option value="ping">Raw ICMP Ping Check</option>
+                        <option value="ssl">SSL Cert Expiry Monitor</option>
+                        <option value="port">TCP Port Handshake Check (Format: IP:Port)</option>
+                        <option value="dns">DNS Resolution Benchmark</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="batch_addresses">Addresses list (one per line)</label>
+                    <textarea id="batch_addresses" rows="8"
+                        placeholder="google.com&#10;cloudflare.com&#10;192.168.1.1&#10;10.0.0.5:80 (for port mapping)"></textarea>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="batch_interval">Scan Interval (Seconds)</label>
+                        <input type="number" id="batch_interval" min="5" value="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="batch_category">Category</label>
+                        <select id="batch_category">
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="batch_tag">Tag Group</label>
+                        <select id="batch_tag">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" onclick="closeBatchModal()">Cancel</button>
+                <button class="btn primary" id="btn_submit_batch" onclick="submitBatchImport()">Import
+                    Endpoints</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

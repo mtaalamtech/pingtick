@@ -1,0 +1,11 @@
+# Runtime data - contains monitoring history and, once configured, alert credentials
+*.db
+*.db-wal
+*.db-shm
+
+# Build output
+*.exe
+*.exe~
+
+# Local Claude Code settings
+.claude/settings.local.json
