@@ -990,14 +990,14 @@ function testAlerts(type) {
     btn.disabled = true;
 
     fetch(`/api/test_alerts?type=${type}`, { method: 'POST' })
-        .then(res => res.json())
-        .then(() => {
-            alert(`${type} test alert triggered! Check your inbox/app.`);
+        .then(async res => {
+            if (!res.ok) throw new Error((await res.text()).trim());
+            alert(`${type} test alert sent. Check your inbox/app.`);
             btn.innerHTML = oldText;
             btn.disabled = false;
         })
         .catch(err => {
-            alert('Failed to trigger test alert');
+            alert(`The ${type} test failed: ${err.message}`);
             console.error(err);
             btn.innerHTML = oldText;
             btn.disabled = false;

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -185,18 +184,20 @@ func sendNotifications(message string) bool {
 	return delivered
 }
 
-func sendTestNotification(triggerType, message string) {
+// sendTestNotification returns an error that is safe to show in the dashboard.
+func sendTestNotification(triggerType, message string) error {
 	if triggerType == "telegram" {
 		token := getSetting("telegram_bot_token")
 		chatID := getSetting("telegram_chat_id")
-		if token != "" && chatID != "" {
-			err := sendTelegramMessage(token, chatID, message)
-			if err != nil {
-				log.Printf("Failed to send test Telegram alert: %v", err)
-			}
-		} else {
-			log.Printf("Cannot test Telegram: Missing Token/ChatID in DB. Save first!")
+		if token == "" || chatID == "" {
+			return errors.New("save the Telegram bot token and chat ID first")
 		}
+		if err := sendTelegramMessage(token, chatID, message); err != nil {
+			// The error can contain the request URL, which includes the bot token.
+			log.Printf("Failed to send test Telegram alert: %v", err)
+			return errors.New("Telegram could not be reached or rejected the bot details")
+		}
+		return nil
 	} else if triggerType == "email" {
 		host := getSetting("smtp_host")
 		port := getSetting("smtp_port")
@@ -214,10 +215,11 @@ func sendTestNotification(triggerType, message string) {
 			if err != nil {
 				log.Printf("Failed to send test Email alert: %v", err)
 			}
-		} else {
-			log.Printf("Cannot test Email: Missing SMTP configs in DB. Save first!")
+			return err
 		}
+		return errors.New("save the SMTP host, port, user and recipient first")
 	}
+	return errors.New("unknown alert type")
 }
 
 func sendTelegramMessage(token, chatID, text string) error {
@@ -270,120 +272,4 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 		}
 	}
 	return nil, nil
-}
-
-func sendEmailAlert(host, port, user, pass, from, to, protocol, text string) error {
-	addr := host + ":" + port
-	subject := "Subject: PingTick Monitoring Alert\n"
-	body := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n" +
-		"<h2>PingTick Alert Notification</h2><p>" + text + "</p>"
-
-	msg := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\n%s%s", from, to, subject, body))
-
-	// Setup Authentication
-	auth := LoginAuth(user, pass)
-
-	if protocol == "ssl" {
-		tlsconfig := &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         host,
-		}
-		conn, err := tls.Dial("tcp", addr, tlsconfig)
-		if err != nil {
-			return err
-		}
-		c, err := smtp.NewClient(conn, host)
-		if err != nil {
-			return err
-		}
-		if err = c.Auth(auth); err != nil {
-			// fallback attempt
-			if errPlain := c.Auth(smtp.PlainAuth("", user, pass, host)); errPlain != nil {
-				return err
-			}
-		}
-		if err = c.Mail(from); err != nil {
-			return err
-		}
-		if err = c.Rcpt(to); err != nil {
-			return err
-		}
-		w, err := c.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(msg)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-		return c.Quit()
-	} else if protocol == "none" {
-		c, err := smtp.Dial(addr)
-		if err != nil {
-			return err
-		}
-		if err = c.Auth(auth); err != nil {
-			c.Auth(smtp.PlainAuth("", user, pass, host))
-		}
-		if err = c.Mail(from); err != nil {
-			return err
-		}
-		if err = c.Rcpt(to); err != nil {
-			return err
-		}
-		w, err := c.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(msg)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-		return c.Quit()
-	} else {
-		// DEFAULT: STARTTLS
-		c, err := smtp.Dial(addr)
-		if err != nil {
-			return err
-		}
-		tlsconfig := &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         host,
-		}
-		if err = c.StartTLS(tlsconfig); err != nil {
-			return err
-		}
-		if err = c.Auth(auth); err != nil {
-			if errPlain := c.Auth(smtp.PlainAuth("", user, pass, host)); errPlain != nil {
-				return err
-			}
-		}
-		if err = c.Mail(from); err != nil {
-			return err
-		}
-		if err = c.Rcpt(to); err != nil {
-			return err
-		}
-		w, err := c.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(msg)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-		return c.Quit()
-	}
 }

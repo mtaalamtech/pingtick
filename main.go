@@ -421,8 +421,11 @@ func handleTestAlerts(w http.ResponseWriter, r *http.Request) {
 	triggerType := r.URL.Query().Get("type")
 	msg := fmt.Sprintf("TEST MODE - Triggered from UI! The %s Alert engine is configured correctly.", triggerType)
 
-	// Just trigger a test alert for the specific channel
-	go sendTestNotification(triggerType, msg)
+	// Waits for the result so the dashboard can show why a test failed
+	if err := sendTestNotification(triggerType, msg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"success": true}`))
