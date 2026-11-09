@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-update dashboard metrics
     setInterval(() => {
-        if (activeTab === 'dashboard-tab') {
+        if (activeTab === 'dashboard-tab' && !document.hidden) {
             fetchTargets();
             fetchSpeedTest();
         }
@@ -679,6 +679,11 @@ function renderChart(history) {
 
 function closeChartModal() {
     document.getElementById('chart-modal').classList.remove('active');
+    document.getElementById('history-log-list').innerHTML = '';
+    if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+    }
 }
 
 function toggleReportPeriod() {

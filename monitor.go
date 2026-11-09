@@ -45,6 +45,7 @@ type Target struct {
 
 	prevSnmpValue uint64    `json:"-"`
 	prevSnmpTime  time.Time `json:"-"`
+	checking      bool      // a check is in flight; guarded by mutex
 }
 
 type LatencyHistory struct {
@@ -85,6 +86,7 @@ func StartMonitoring() {
 
 	// Start worker loop
 	go monitorLoop()
+	go pruneHistoryLoop()
 }
 
 func loadTargetsFromDB() {
@@ -157,6 +159,7 @@ func UpdateTarget(t *Target) error {
 		t.Status = existing.Status
 		t.Latency = existing.Latency
 		t.LastCheck = time.Time{} // Force check
+		t.checking = existing.checking
 		targets[t.ID] = t
 	}
 	mutex.Unlock()
@@ -183,7 +186,8 @@ func GetTargets() []*Target {
 	defer mutex.RUnlock()
 	var list []*Target
 	for _, t := range targets {
-		list = append(list, t)
+		snapshot := *t
+		list = append(list, &snapshot)
 	}
 
 	sort.Slice(list, func(i, j int) bool {
@@ -195,20 +199,53 @@ func GetTargets() []*Target {
 
 func monitorLoop() {
 	for {
-		mutex.RLock()
+		mutex.Lock()
 		var targetsToCheck []*Target
 		for _, t := range targets {
-			if time.Since(t.LastCheck).Seconds() >= float64(t.Interval) {
+			if !t.checking && time.Since(t.LastCheck).Seconds() >= float64(t.Interval) {
+				t.checking = true
 				targetsToCheck = append(targetsToCheck, t)
 			}
 		}
-		mutex.RUnlock()
+		mutex.Unlock()
 
 		for _, t := range targetsToCheck {
-			go checkTarget(t)
+			go runCheck(t)
 		}
 
 		time.Sleep(1 * time.Second)
+	}
+}
+
+// runCheck runs one check and then marks the target as free for the next one.
+func runCheck(t *Target) {
+	defer func() {
+		mutex.Lock()
+		if current, exists := targets[t.ID]; exists {
+			current.checking = false
+		}
+		mutex.Unlock()
+	}()
+	checkTarget(t)
+}
+
+// retentionPeriod returns the configured retention. Only known values are
+// returned because the result is placed directly into SQL date modifiers.
+func retentionPeriod() string {
+	switch v := getSetting("data_retention"); v {
+	case "1 month", "3 months", "6 months", "1 year":
+		return v
+	}
+	return "3 months"
+}
+
+func pruneHistoryLoop() {
+	for {
+		query := fmt.Sprintf(`DELETE FROM latency_history WHERE timestamp < datetime('now', '-%s')`, retentionPeriod())
+		if _, err := db.Exec(query); err != nil {
+			log.Printf("Failed to prune history: %v", err)
+		}
+		time.Sleep(1 * time.Hour)
 	}
 }
 
@@ -464,31 +501,18 @@ func updateTargetStatus(id string, status string, latencyMs int64, replyIP strin
 			log.Printf("Failed to record stats to db: %v", err)
 		}
 
-		retentionPeriod := "3 months"
-		if retentionSetting := getSetting("data_retention"); retentionSetting != "" {
-			retentionPeriod = retentionSetting
-		}
-
-		// Keep DB size lean using time-based retention
-		db.Exec(fmt.Sprintf(`DELETE FROM latency_history WHERE target_id = ? AND timestamp < datetime('now', '-%s')`, retentionPeriod), targetCopy.ID)
-
 		// Check alerting settings
 		checkAlerting(&targetCopy)
 	}
 }
 
 func GetTargetHistory(id string) ([]LatencyHistory, error) {
-	retentionPeriod := "3 months"
-	if retentionSetting := getSetting("data_retention"); retentionSetting != "" {
-		retentionPeriod = retentionSetting
-	}
-
 	// Fetch up to 500 most recent records within retention period for the UI chart
 	query := fmt.Sprintf(`
 		SELECT timestamp, latency, status, COALESCE(reply_ip, ''), COALESCE(ttl, 0) 
 		FROM latency_history 
 		WHERE target_id = ? AND timestamp >= datetime('now', '-%s') 
-		ORDER BY timestamp DESC LIMIT 500`, retentionPeriod)
+		ORDER BY timestamp DESC LIMIT 500`, retentionPeriod())
 
 	rows, err := db.Query(query, id)
 	if err != nil {

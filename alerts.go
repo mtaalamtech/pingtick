@@ -224,7 +224,8 @@ func sendTelegramMessage(token, chatID, text string) error {
 		return err
 	}
 
-	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(body))
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Post(apiURL, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}

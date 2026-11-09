@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os/exec"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -33,6 +34,10 @@ func init() {
 }
 
 func main() {
+	// PingTick is meant to stay open for days, so favour a small footprint.
+	debug.SetGCPercent(50)
+	debug.SetMemoryLimit(64 << 20)
+
 	systray.Run(onReady, onExit)
 }
 
@@ -462,9 +467,9 @@ func openBrowser(url string) {
 func handleSpeedTest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method == http.MethodGet {
-		json.NewEncoder(w).Encode(currentSpeedTest)
+		json.NewEncoder(w).Encode(speedTestSnapshot())
 	} else if r.Method == http.MethodPost {
-		if currentSpeedTest.IsRunning {
+		if speedTestSnapshot().IsRunning {
 			w.Write([]byte(`{"status": "already_running"}`))
 			return
 		}

@@ -21,6 +21,7 @@ func InitDB() {
 	db.SetMaxOpenConns(1)
 	db.Exec("PRAGMA journal_mode=WAL;")
 	db.Exec("PRAGMA busy_timeout=10000;")
+	db.Exec("PRAGMA cache_size=-1024;") // limit the page cache to 1 MB
 
 	// Create tables if they do not exist
 	queries := []string{
@@ -64,6 +65,9 @@ func InitDB() {
 	db.Exec("ALTER TABLE targets ADD COLUMN wmi_pass TEXT")
 	db.Exec("ALTER TABLE targets ADD COLUMN wmi_namespace TEXT")
 	db.Exec("ALTER TABLE targets ADD COLUMN wmi_query TEXT")
+
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_history_target_time ON latency_history(target_id, timestamp)")
+	db.Exec("CREATE INDEX IF NOT EXISTS idx_history_time ON latency_history(timestamp)")
 
 	// Pre-population of targets has been disabled for production releases
 }
