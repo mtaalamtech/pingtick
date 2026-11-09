@@ -348,21 +348,37 @@ func checkWMI(t *Target) {
 	}
 }
 
-func checkSNMP(t *Target) {
-	gosnmp.Default.Target = t.Host
-	gosnmp.Default.Port = 161
-	gosnmp.Default.Community = t.SnmpCommunity
-	if gosnmp.Default.Community == "" {
-		gosnmp.Default.Community = "public"
-	}
-	gosnmp.Default.Timeout = time.Duration(2) * time.Second
+// snmpPort is a variable so tests can use an unprivileged port.
+var snmpPort uint16 = 161
 
-	err := gosnmp.Default.Connect()
+// newSNMPClient returns a client for one check. Checks run concurrently, so
+// they must never share a client or its connection.
+func newSNMPClient(t *Target) *gosnmp.GoSNMP {
+	community := t.SnmpCommunity
+	if community == "" {
+		community = "public"
+	}
+	return &gosnmp.GoSNMP{
+		Target:             t.Host,
+		Port:               snmpPort,
+		Transport:          "udp",
+		Community:          community,
+		Version:            gosnmp.Version2c,
+		Timeout:            2 * time.Second,
+		Retries:            3,
+		ExponentialTimeout: true,
+		MaxOids:            gosnmp.MaxOids,
+	}
+}
+
+func checkSNMP(t *Target) {
+	client := newSNMPClient(t)
+	err := client.Connect()
 	if err != nil {
 		updateTargetStatus(t.ID, "offline", 0, "", 0)
 		return
 	}
-	defer gosnmp.Default.Conn.Close()
+	defer client.Conn.Close()
 
 	if t.SnmpOID == "" {
 		// Just test connection
@@ -371,7 +387,7 @@ func checkSNMP(t *Target) {
 	}
 
 	oids := []string{t.SnmpOID}
-	result, err := gosnmp.Default.Get(oids)
+	result, err := client.Get(oids)
 	if err != nil || len(result.Variables) == 0 {
 		updateTargetStatus(t.ID, "offline", 0, "", 0)
 		return

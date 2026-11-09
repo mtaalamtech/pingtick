@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 		`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT)`,
 		`CREATE TABLE targets (id TEXT PRIMARY KEY, name TEXT, host TEXT, type TEXT, interval INTEGER, tag TEXT, category TEXT,
 			snmp_community TEXT, snmp_oid TEXT, wmi_user TEXT, wmi_pass TEXT, wmi_namespace TEXT, wmi_query TEXT)`,
-		`CREATE TABLE latency_history (target_id TEXT)`,
+		`CREATE TABLE latency_history (target_id TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, latency INTEGER, status TEXT, reply_ip TEXT, ttl INTEGER)`,
 	} {
 		if _, err := db.Exec(q); err != nil {
 			log.Fatal(err)
