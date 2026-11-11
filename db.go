@@ -3,15 +3,64 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
 
 var db *sql.DB
 
+const databaseName = "pingtick.db"
+
+// databasePath keeps the database next to the program, so a copy extracted
+// from a zip works wherever it is started from.
+func databasePath() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return databaseName
+	}
+	return databasePathFor(filepath.Dir(exe), os.TempDir(), os.Getenv("LOCALAPPDATA"))
+}
+
+// databasePathFor picks the database location for a program in exeDir.
+//   - "go run" and "go test" build into a go-build folder, so those use the
+//     current folder.
+//   - A program opened straight from a zip runs from a temporary folder that
+//     Windows clears later, and a folder such as Program Files cannot be
+//     written to. Both keep their data in %LOCALAPPDATA%\PingTick instead.
+func databasePathFor(exeDir, tempDir, localAppData string) string {
+	inTemp := strings.HasPrefix(strings.ToLower(filepath.Clean(exeDir)), strings.ToLower(filepath.Clean(tempDir)))
+	if inTemp && strings.Contains(strings.ToLower(exeDir), "go-build") {
+		return databaseName
+	}
+	if !inTemp && folderWritable(exeDir) {
+		return filepath.Join(exeDir, databaseName)
+	}
+	if localAppData != "" {
+		dir := filepath.Join(localAppData, "PingTick")
+		if os.MkdirAll(dir, 0o755) == nil {
+			return filepath.Join(dir, databaseName)
+		}
+	}
+	return databaseName
+}
+
+func folderWritable(dir string) bool {
+	probe, err := os.CreateTemp(dir, ".pingtick-write-test-*")
+	if err != nil {
+		return false
+	}
+	probe.Close()
+	os.Remove(probe.Name())
+	return true
+}
+
 func InitDB() {
 	var err error
-	dbPath := "./pingtick.db"
+	dbPath := databasePath()
+	log.Printf("Using database %s", dbPath)
 
 	db, err = sql.Open("sqlite", dbPath)
 	if err != nil {

@@ -530,6 +530,7 @@ function fetchSettings() {
             document.getElementById('alert_threshold').value = data.alert_threshold || '3';
             document.getElementById('data_retention').value = data.data_retention || '3 months';
             document.getElementById('show_public_ip').checked = (data.show_public_ip === 'true');
+            document.getElementById('auto_speed_test').checked = (data.auto_speed_test === 'true');
             document.getElementById('telegram_enabled').checked = (data.telegram_enabled === 'true');
             document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
             document.getElementById('telegram_chat_id').value = data.telegram_chat_id || '';
@@ -557,6 +558,7 @@ function saveSettings() {
         alert_threshold: document.getElementById('alert_threshold').value,
         data_retention: document.getElementById('data_retention').value,
         show_public_ip: document.getElementById('show_public_ip').checked ? 'true' : 'false',
+        auto_speed_test: document.getElementById('auto_speed_test').checked ? 'true' : 'false',
         telegram_enabled: document.getElementById('telegram_enabled').checked ? 'true' : 'false',
         telegram_bot_token: document.getElementById('telegram_bot_token').value,
         telegram_chat_id: document.getElementById('telegram_chat_id').value,

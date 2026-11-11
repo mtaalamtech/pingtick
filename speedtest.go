@@ -151,13 +151,24 @@ func megabitsPerSecond(bytes int64, elapsed time.Duration) float64 {
 	return float64(bytes*8) / 1000000.0 / seconds
 }
 
+// autoSpeedTestEnabled is off unless switched on in Settings, because each
+// run transfers about 6 MB.
+func autoSpeedTestEnabled() bool {
+	return getSetting("auto_speed_test") == "true"
+}
+
+// StartAutoSpeedTest runs a test every hour while it is switched on. The
+// setting is checked each minute, so switching it on takes effect quickly.
 func StartAutoSpeedTest() {
-	// Wait 10 seconds before starting the first automatic benchmark
-	time.AfterFunc(10*time.Second, func() {
-		RunSpeedTest() // initial
-		ticker := time.NewTicker(1 * time.Hour)
-		for range ticker.C {
-			RunSpeedTest()
+	go func() {
+		time.Sleep(10 * time.Second)
+		var lastRun time.Time
+		for {
+			if autoSpeedTestEnabled() && time.Since(lastRun) >= time.Hour {
+				lastRun = time.Now()
+				RunSpeedTest()
+			}
+			time.Sleep(time.Minute)
 		}
-	})
+	}()
 }

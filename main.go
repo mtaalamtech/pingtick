@@ -452,6 +452,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			"target_categories":    getSetting("target_categories"),
 			"target_tags":          getSetting("target_tags"),
 			"show_public_ip":       getSetting("show_public_ip"),
+			"auto_speed_test":      getSetting("auto_speed_test"),
 		}
 		json.NewEncoder(w).Encode(settings)
 
