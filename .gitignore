@@ -9,3 +9,9 @@
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Personal notes kept out of the public repository
+PORTFOLIO-Pingtick.md
+
+# Release builds
+dist/

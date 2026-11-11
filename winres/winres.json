@@ -10,10 +10,10 @@
     "#1": {
       "0409": {
         "identity": {
-          "name": "",
-          "version": ""
+          "name": "MtaalamTech.PingTick",
+          "version": "1.1.0.0"
         },
-        "description": "",
+        "description": "PingTick network monitor",
         "minimum-os": "win7",
         "execution-level": "as invoker",
         "ui-access": false,
@@ -41,16 +41,16 @@
         "info": {
           "0409": {
             "Comments": "",
-            "CompanyName": "",
-            "FileDescription": "",
-            "FileVersion": "",
-            "InternalName": "",
-            "LegalCopyright": "",
+            "CompanyName": "Core Mtaalam Technologies",
+            "FileDescription": "PingTick network monitor",
+            "FileVersion": "1.1.0",
+            "InternalName": "PingTick",
+            "LegalCopyright": "Copyright (c) 2026 Core Mtaalam Technologies. MIT License.",
             "LegalTrademarks": "",
-            "OriginalFilename": "",
+            "OriginalFilename": "PingTick.exe",
             "PrivateBuild": "",
-            "ProductName": "",
-            "ProductVersion": "",
+            "ProductName": "PingTick",
+            "ProductVersion": "1.1.0",
             "SpecialBuild": ""
           }
         }
