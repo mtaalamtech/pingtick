@@ -112,4 +112,4 @@ Please don't report security problems in public issues. Use [GitHub's private vu
 
 PingTick is released under the [MIT License](LICENSE). Copyright (c) 2026 Core Mtaalam Technologies.
 
-It is built on open-source components listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). PingTick is an independent project and is not affiliated with NirSoft or PingInfoView.
+It is built on open-source components listed in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
