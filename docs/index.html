@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PingTick – Free Network Monitor for Windows</title>
+<meta name="description" content="PingTick is a free, open-source network monitor for Windows. Ping, port, SSL, DNS, SNMP and WMI checks with history and Telegram or email alerts. One portable exe, no install.">
+<link rel="canonical" href="https://mtaalamtech.github.io/pingtick/">
+<link rel="icon" type="image/png" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="PingTick – Free Network Monitor for Windows">
+<meta property="og:description" content="Watch hosts, ports, certificates and DNS in one table and get Telegram or email alerts when something goes down. Portable, free and open source.">
+<meta property="og:url" content="https://mtaalamtech.github.io/pingtick/">
+<meta property="og:image" content="https://mtaalamtech.github.io/pingtick/monitor.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f1a33">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PingTick",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Windows 10, Windows 11",
+  "softwareVersion": "1.1.0",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "downloadUrl": "https://github.com/mtaalamtech/pingtick/releases/latest",
+  "screenshot": "https://mtaalamtech.github.io/pingtick/monitor.png",
+  "author": { "@type": "Organization", "name": "Core Mtaalam Technologies" },
+  "description": "Free, portable network monitor for Windows with ping, port, SSL, DNS, SNMP and WMI checks, history and Telegram or email alerts."
+}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a light "instrument panel" page. The hero pairs the pitch with a live, ticking monitor table; then screenshots, features, three setup steps, privacy and FAQ. */
+:root {
+  --bg: #f4f6fb; --surface: #ffffff; --ink: #0f1a33; --muted: #55627d; --line: #dbe1ec;
+  --accent: #2563eb; --accent-ink: #ffffff; --accent-soft: #e5edff;
+  --ok: #0f9d6b; --bad: #d93a3a; --bad-soft: #fde8e8; --warn: #b7791f;
+  --panel: #0f1a33; --panel-ink: #e6ecf8; --panel-muted: #8796b5; --panel-line: #24314f;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1222; --surface: #111a2e; --ink: #e8edf7; --muted: #97a3bd; --line: #233050;
+    --accent: #5b8cff; --accent-ink: #0b1222; --accent-soft: #18264a;
+    --ok: #34c88f; --bad: #ff6b6b; --bad-soft: #3a1c22; --warn: #f0b45a;
+    --panel: #070c18; --panel-ink: #e6ecf8; --panel-muted: #8796b5; --panel-line: #1d2944;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 { font-weight: 800; font-size: clamp(38px, 6.4vw, 66px); letter-spacing: -0.02em; }
+h2 { font-weight: 800; font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.01em; }
+h3 { font-weight: 600; font-size: 19px; }
+p { margin: 0; }
+.eyebrow { font: 500 13px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.muted { color: var(--muted); }
+
+/* nav */
+.top { padding-block: 18px; }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 800 20px/1 var(--display); color: var(--ink); text-decoration: none; }
+.brand img { width: 30px; height: 30px; }
+.top nav { display: flex; gap: 22px; font-size: 15px; }
+.top nav a { color: var(--muted); text-decoration: none; }
+.top nav a:hover { color: var(--ink); }
+@media (max-width: 720px) { .top nav .hide-sm { display: none; } }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 10px; font: 600 16px/1 var(--body); padding: 15px 22px; border-radius: 10px; text-decoration: none; border: 1px solid transparent; transition: transform .15s ease, background .15s ease; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-ghost { border-color: var(--line); color: var(--ink); background: var(--surface); }
+.btn-ghost:hover { border-color: var(--accent); }
+.btn small { font: 400 13px/1 var(--mono); opacity: .8; }
+
+/* hero */
+.hero { padding-block: 40px 72px; }
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: center; }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); gap: 40px; } }
+.hero-copy { display: grid; gap: 22px; }
+.lede { font-size: 19px; color: var(--muted); max-width: 34em; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.meta { font: 13px/1.5 var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+/* live monitor panel */
+.panel { background: var(--panel); color: var(--panel-ink); border-radius: 14px; overflow: hidden; box-shadow: 0 30px 60px -30px rgba(15, 26, 51, .55); min-width: 0; }
+.panel-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--panel-line); font: 500 13px/1 var(--mono); color: var(--panel-muted); }
+.panel-bar b { color: var(--panel-ink); font-weight: 500; }
+.live { display: inline-flex; align-items: center; gap: 8px; }
+.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #34c88f; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .live::before { animation: none; } }
+.table-scroll { overflow-x: auto; }
+table.mon { width: 100%; border-collapse: collapse; font: 13px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+table.mon th { text-align: left; font-weight: 500; color: var(--panel-muted); padding: 10px 12px; border-bottom: 1px solid var(--panel-line); white-space: nowrap; }
+table.mon td { padding: 11px 12px; border-bottom: 1px solid var(--panel-line); white-space: nowrap; }
+table.mon tr:last-child td { border-bottom: 0; }
+table.mon td.num { text-align: right; }
+table.mon th.num { text-align: right; }
+.st { display: inline-flex; align-items: center; gap: 7px; }
+.st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #34c88f; }
+@media (max-width: 560px) { table.mon th:nth-child(2), table.mon td:nth-child(2) { display: none; } }
+tr.down td { background: rgba(255, 107, 107, .12); }
+tr.down .st::before { background: #ff6b6b; }
+tr.down .st { color: #ff9a9a; }
+tr.amber .res { color: #f0b45a; }
+.flash { animation: flash .6s ease; }
+@keyframes flash { from { color: #ffffff; } to { color: inherit; } }
+.panel-foot { padding: 11px 16px; border-top: 1px solid var(--panel-line); font: 12px/1.4 var(--mono); color: var(--panel-muted); }
+
+/* sections */
+section { padding-block: 72px; }
+.section-head { display: grid; gap: 12px; margin-bottom: 36px; max-width: 46em; }
+.band { background: var(--surface); border-block: 1px solid var(--line); }
+
+/* screenshots */
+.shots { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; }
+.shots { align-items: start; }
+.shots figure { margin: 0; display: grid; gap: 10px; }
+.shots img { border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.shots figcaption { font-size: 14px; color: var(--muted); }
+.shots .wide { grid-column: 1 / -1; }
+@media (max-width: 760px) { .shots { grid-template-columns: minmax(0, 1fr); } }
+
+/* features */
+.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.feature { background: var(--surface); padding: 26px; display: grid; gap: 10px; align-content: start; }
+.feature .tag { font: 500 12px/1 var(--mono); color: var(--accent); }
+.feature p { color: var(--muted); font-size: 15px; }
+@media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .features { grid-template-columns: minmax(0, 1fr); } }
+
+/* checks strip */
+.checks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.checks span { font: 500 14px/1 var(--mono); padding: 10px 14px; border-radius: 8px; background: var(--accent-soft); color: var(--ink); }
+
+/* steps */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; counter-reset: step; list-style: none; padding: 0; margin: 0; }
+.steps li { display: grid; gap: 10px; align-content: start; padding-top: 18px; border-top: 2px solid var(--ink); }
+.steps li::before { counter-increment: step; content: "Step " counter(step); font: 500 13px/1 var(--mono); color: var(--accent); }
+.steps p { color: var(--muted); font-size: 15px; }
+@media (max-width: 760px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+.note { margin-top: 28px; padding: 16px 18px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-size: 15px; color: var(--muted); max-width: 52em; }
+.note strong { color: var(--ink); }
+
+/* privacy table */
+.privacy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 48px; align-items: start; }
+@media (max-width: 900px) { .privacy { grid-template-columns: minmax(0, 1fr); gap: 28px; } }
+.privacy ul { margin: 18px 0 0; padding-left: 20px; display: grid; gap: 8px; color: var(--muted); }
+.svc { width: 100%; border-collapse: collapse; font-size: 15px; }
+.svc th, .svc td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.svc th { font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.svc code { font: 13px var(--mono); }
+
+/* faq */
+.faq { display: grid; gap: 10px; max-width: 52em; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+summary { cursor: pointer; font-weight: 600; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+details p { margin-top: 10px; color: var(--muted); }
+details code { font: 14px var(--mono); }
+
+/* final cta + footer */
+.final { text-align: center; }
+.final .wrap { display: grid; gap: 20px; justify-items: center; }
+footer { padding-block: 36px 48px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; }
+footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="icon.png" alt="" width="30" height="30">PingTick</a>
+    <nav aria-label="Main">
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#start">Get started</a>
+      <a class="hide-sm" href="#privacy">Privacy</a>
+      <a href="https://github.com/mtaalamtech/pingtick">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="eyebrow">Free · open source · Windows 10 &amp; 11</span>
+        <h1 id="hero-title">Know the moment your network goes down.</h1>
+        <p class="lede">PingTick watches your routers, servers, ports and certificates around the clock, keeps a history of every check, and messages you on Telegram or email when something drops. It's one small portable app with no installer and no account.</p>
+        <div class="cta">
+          <a class="btn btn-primary" id="dl" href="https://github.com/mtaalamtech/pingtick/releases/latest">Download for Windows <small id="dl-meta">v1.1.0 · 5.8 MB</small></a>
+          <a class="btn btn-ghost" href="https://github.com/mtaalamtech/pingtick">View source</a>
+        </div>
+        <div class="meta"><span>MIT licence</span><span>No telemetry</span><span>~37 MB RAM with window open</span></div>
+      </div>
+
+      <div class="panel" role="img" aria-label="Example of the PingTick monitor showing six online targets and one offline">
+        <div class="panel-bar"><b>PingTick Monitor</b><span class="live">live</span></div>
+        <div class="table-scroll">
+          <table class="mon">
+            <thead><tr><th>Name</th><th>Host</th><th>Status</th><th class="num">Result</th></tr></thead>
+            <tbody id="rows">
+              <tr><td>Core router</td><td>10.0.0.1</td><td><span class="st">ONLINE</span></td><td class="num res" data-base="2">2 ms</td></tr>
+              <tr><td>File server</td><td>10.0.0.20</td><td><span class="st">ONLINE</span></td><td class="num res" data-base="1">1 ms</td></tr>
+              <tr><td>Cloudflare DNS</td><td>1.1.1.1</td><td><span class="st">ONLINE</span></td><td class="num res" data-base="12">12 ms</td></tr>
+              <tr><td>Web shop HTTPS</td><td>shop.example.com:443</td><td><span class="st">ONLINE</span></td><td class="num res" data-base="48">48 ms</td></tr>
+              <tr class="amber"><td>Shop certificate</td><td>shop.example.com</td><td><span class="st">ONLINE</span></td><td class="num res">12 days</td></tr>
+              <tr class="down"><td>Branch VPN</td><td>10.8.0.1</td><td><span class="st">OFFLINE</span></td><td class="num">–</td></tr>
+              <tr><td>Office printer</td><td>10.0.0.45</td><td><span class="st">ONLINE</span></td><td class="num res" data-base="3">3 ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-foot">7 targets, 6 online, 1 offline · alert sent to Telegram</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="see-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">See it</span>
+        <h2 id="see-title">A fast native table, with history behind every row.</h2>
+        <p class="muted">PingTick opens as a plain Windows window, not a browser. Close it and it carries on monitoring from the system tray.</p>
+      </div>
+      <div class="shots">
+        <figure class="wide"><img src="monitor.png" alt="PingTick monitor window listing targets with status, reply IP, latency and failure rate; one offline row is highlighted red" width="1400" height="675" loading="lazy"><figcaption>The monitor window. Offline rows turn red, and certificates close to expiry turn amber.</figcaption></figure>
+        <figure><img src="insights.png" alt="Insights window with a latency chart and a table of recent checks for Cloudflare DNS" width="975" height="750" loading="lazy"><figcaption>Insights shows a latency chart and the last 500 checks for any target, with CSV export.</figcaption></figure>
+        <figure><img src="dashboard.png" alt="PingTick web dashboard with uptime, offline count and average latency" width="1800" height="1050" loading="lazy"><figcaption>The web dashboard has reports, the IP scanner and settings. It's only reachable from your own PC.</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" aria-labelledby="feat-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Features</span>
+        <h2 id="feat-title">Everything a ping window should have done.</h2>
+      </div>
+      <div class="features">
+        <div class="feature"><span class="tag">alerts</span><h3>Telegram and email alerts</h3><p>Set how many failed checks count as down, so a single lost packet doesn't wake you. You get a second message when the target comes back.</p></div>
+        <div class="feature"><span class="tag">history</span><h3>Every check is saved</h3><p>Results go into a local database. See what happened overnight, chart latency per target, and export proof for your ISP.</p></div>
+        <div class="feature"><span class="tag">ssl</span><h3>Certificate warnings</h3><p>Get warned 30, 14, 7 and 1 days before a website's certificate expires, and again if it lapses.</p></div>
+        <div class="feature"><span class="tag">scan</span><h3>IP scanner</h3><p>Sweep up to 4,096 addresses, see what answers, and add the devices you care about in one click.</p></div>
+        <div class="feature"><span class="tag">reports</span><h3>Uptime reports</h3><p>Uptime and latency per target for today, yesterday, the last 7 days or any range, as PDF or CSV. An optional daily summary is sent to you.</p></div>
+        <div class="feature"><span class="tag">privacy</span><h3>Safe for screen sharing</h3><p>Your public IP and ISP stay hidden unless you choose to show them, so remote sessions and screenshots don't leak them.</p></div>
+      </div>
+      <div class="checks" aria-label="Check types">
+        <span>ICMP ping</span><span>TCP port</span><span>SSL expiry</span><span>DNS</span><span>SNMP</span><span>SNMP bandwidth</span><span>WMI</span><span>Speed test</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="start" class="band" aria-labelledby="start-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Get started</span>
+        <h2 id="start-title">Running in under a minute.</h2>
+      </div>
+      <ol class="steps">
+        <li><h3>Download the zip</h3><p>Get the latest release from GitHub. It's about 6 MB.</p></li>
+        <li><h3>Extract and run</h3><p>Right-click the zip, choose <strong>Extract All</strong>, and open <strong>PingTick.exe</strong>. Your data is saved in the same folder.</p></li>
+        <li><h3>Add what matters</h3><p>Type an IP, hostname or <code>host:port</code> and click <strong>Add</strong>. Set up alerts in Web Dashboard → System Settings.</p></li>
+      </ol>
+      <p class="note"><strong>"Windows protected your PC"?</strong> PingTick isn't code-signed yet, so SmartScreen may warn you the first time. Click <strong>More info</strong>, then <strong>Run anyway</strong>. Every release publishes its SHA-256 hash so you can check your download, and the full source is on GitHub.</p>
+    </div>
+  </section>
+
+  <section id="privacy" aria-labelledby="priv-title">
+    <div class="wrap privacy">
+      <div>
+        <span class="eyebrow">Privacy</span>
+        <h2 id="priv-title" style="margin-top:12px">Your data stays on your PC.</h2>
+        <ul>
+          <li>No telemetry, analytics or account</li>
+          <li>The dashboard listens on 127.0.0.1 only</li>
+          <li>Alert settings are stored in a local file</li>
+          <li>Open source under the MIT licence</li>
+        </ul>
+      </div>
+      <div class="table-scroll">
+        <table class="svc">
+          <thead><tr><th>Only when you use</th><th>It contacts</th></tr></thead>
+          <tbody>
+            <tr><td>Speed test</td><td><code>speed.cloudflare.com</code></td></tr>
+            <tr><td>Show public IP (off by default)</td><td><code>ip-api.com</code></td></tr>
+            <tr><td>Telegram alerts</td><td><code>api.telegram.org</code></td></tr>
+            <tr><td>Email alerts</td><td>Your own SMTP server</td></tr>
+            <tr><td>Web dashboard</td><td><code>cdn.jsdelivr.net</code>, Google Fonts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Questions</span>
+        <h2 id="faq-title">Good to know</h2>
+      </div>
+      <div class="faq">
+        <details><summary>Is it really free?</summary><p>Yes. PingTick is free and open source under the MIT licence. There is no paid tier and no account.</p></details>
+        <details><summary>How is it different from PingInfoView?</summary><p>PingInfoView shows what's happening right now. PingTick also keeps a history of every check, sends alerts to your phone, checks ports, certificates, DNS, SNMP and WMI, scans for devices and produces uptime reports.</p></details>
+        <details><summary>Does it need admin rights?</summary><p>No. Extract it to any folder you can write to and run it as a normal user.</p></details>
+        <details><summary>How do I start it with Windows?</summary><p>Press <code>Win+R</code>, type <code>shell:startup</code>, and put a shortcut to <code>PingTick.exe</code> in the folder that opens.</p></details>
+        <details><summary>Where is my data kept?</summary><p>In <code>pingtick.db</code> next to <code>PingTick.exe</code>, so you can carry the folder on a USB stick. If that folder can't be written to, it uses <code>%LOCALAPPDATA%\PingTick</code>.</p></details>
+        <details><summary>I found a bug or have an idea.</summary><p>Open an issue on <a href="https://github.com/mtaalamtech/pingtick/issues">GitHub</a>. Please report security problems privately through GitHub's vulnerability reporting.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" aria-labelledby="final-title">
+    <div class="wrap">
+      <h2 id="final-title">Stop finding out from the phone call.</h2>
+      <a class="btn btn-primary" href="https://github.com/mtaalamtech/pingtick/releases/latest" id="dl2">Download PingTick for Windows</a>
+      <p class="muted">Windows 10 and 11, 64-bit · free · open source</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Core Mtaalam Technologies · MIT licence</span>
+    <span><a href="https://github.com/mtaalamtech/pingtick">Source</a> · <a href="https://github.com/mtaalamtech/pingtick/releases">Releases</a> · <a href="https://github.com/mtaalamtech/pingtick/issues">Issues</a></span>
+  </div>
+</footer>
+
+<script>
+// Point the download buttons straight at the latest zip; fall back to the releases page.
+fetch('https://api.github.com/repos/mtaalamtech/pingtick/releases/latest')
+  .then(function (r) { return r.ok ? r.json() : null; })
+  .then(function (rel) {
+    if (!rel || !rel.assets) return;
+    var zip = rel.assets.find(function (a) { return /windows_x64\.zip$/.test(a.name); });
+    if (!zip) return;
+    ['dl', 'dl2'].forEach(function (id) { document.getElementById(id).href = zip.browser_download_url; });
+    document.getElementById('dl-meta').textContent = rel.tag_name + ' · ' + (zip.size / 1e6).toFixed(1) + ' MB';
+  })
+  .catch(function () {});
+
+// Gently vary the example latencies so the panel feels live.
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  setInterval(function () {
+    document.querySelectorAll('#rows td[data-base]').forEach(function (td) {
+      var base = +td.dataset.base;
+      var v = Math.max(1, Math.round(base + (Math.random() - 0.4) * Math.max(2, base * 0.25)));
+      td.textContent = v + ' ms';
+      td.classList.remove('flash'); void td.offsetWidth; td.classList.add('flash');
+    });
+  }, 2000);
+}
+</script>
+</body>
+</html>

@@ -10,7 +10,7 @@
 PingTick is a free, open-source alternative to PingInfoView for people who leave their monitor running all day. It is a single portable `.exe`, so there is no installer, no runtime to install and no account. It keeps every check in a local database, so you can look back at what happened overnight. Close the window and it carries on quietly from the system tray.
 
 <p align="center">
-  <a href="https://github.com/mtaalamtech/pingtick/releases/latest"><b>⬇ Download PingTick for Windows</b></a>
+  <a href="https://github.com/mtaalamtech/pingtick/releases/latest"><b>⬇ Download PingTick for Windows</b></a> · <a href="https://mtaalamtech.github.io/pingtick/">Website</a>
 </p>
 
 ![PingTick monitor window](docs/monitor.png)
